@@ -1,0 +1,27 @@
+# Build output
+target/
+
+# Compiled files
+*.class
+
+# Packaged files
+*.jar
+*.war
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Local config
+.env
