@@ -15,8 +15,9 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>21</maven.compiler.release>
         <javafx.version>21.0.2</javafx.version>
-        <main.class>io.github.nikhilvirdi.retroamp98.RetroAmpApp</main.class>
+        <exec.mainClass>io.github.nikhilvirdi.retroamp98.RetroAmpApp</exec.mainClass>
     </properties>
+
 
     <dependencies>
         <!-- JavaFX Controls -->
@@ -59,7 +60,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.5.0</version>
                 <configuration>
-                    <mainClass>${main.class}</mainClass>
+                    <mainClass>${exec.mainClass}</mainClass>
                 </configuration>
             </plugin>
         </plugins>
