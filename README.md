@@ -2,11 +2,8 @@
 
 A retro Windows 98-style media player. Pick a file, hit play.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/42771171-7d39-4d65-a98d-09b81ad0a8a8">
-  <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/ec909c2a-1f77-4912-a40c-082d89ae8a09">
-  <img alt="RetroAmp98 logo" src="https://github.com/user-attachments/assets/ec909c2a-1f77-4912-a40c-082d89ae8a09" width="200" height="50">
-</picture>
+<img width="200" height="50" alt="darkmodelogo" src="https://github.com/user-attachments/assets/42771171-7d39-4d65-a98d-09b81ad0a8a8" />
+<img width="200" height="50" alt="lightmodelogo" src="https://github.com/user-attachments/assets/ec909c2a-1f77-4912-a40c-082d89ae8a09" />
 
 ## About RetroAmp98
 
