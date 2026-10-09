@@ -1,60 +1,53 @@
 package io.github.nikhilvirdi.retroamp98;
 
-import javafx.embed.swing.JFXPanel;
+import io.github.nikhilvirdi.retroamp98.engine.JavaFxMediaEngine;
+import io.github.nikhilvirdi.retroamp98.engine.MediaEngine;
+import io.github.nikhilvirdi.retroamp98.playlist.PlaylistManager;
+import io.github.nikhilvirdi.retroamp98.ui.MainWindow;
+import io.github.nikhilvirdi.retroamp98.ui.PlayerController;
 
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
-import java.awt.BorderLayout;
-import java.awt.Dimension;
 
 /**
- * Main entry point for the RetroAmp98 desktop media player.
- * Initializes Swing UI with Windows Look and Feel and bootstraps JavaFX runtime.
+ * Main application bootstrap for RetroAmp98.
+ * Sets the Windows Classic Look and Feel, initializes the media engine,
+ * playlist manager, controller, and displays the main window on the EDT.
  */
 public class RetroAmpApp {
 
     public static void main(String[] args) {
-        // Run UI initialization on the Event Dispatch Thread (EDT)
         SwingUtilities.invokeLater(() -> {
-            initLookAndFeel();
-            createAndShowGui();
+            applyLookAndFeel();
+
+            // Initialize media engine and playlist layers
+            MediaEngine engine = new JavaFxMediaEngine();
+            PlaylistManager playlistManager = new PlaylistManager();
+
+            // Wire controller and UI
+            PlayerController controller = new PlayerController(engine, playlistManager);
+            MainWindow mainWindow = new MainWindow(controller);
+
+            mainWindow.setVisible(true);
         });
     }
 
     /**
-     * Attempts to set the Windows Look and Feel with fallback to system default.
+     * Tries Windows Classic Look and Feel first, falling back to System LAF,
+     * then cross-platform LAF.
      */
-    private static void initLookAndFeel() {
+    private static void applyLookAndFeel() {
         try {
-            UIManager.setLookAndFeel("com.sun.java.swing.plaf.windows.WindowsLookAndFeel");
+            UIManager.setLookAndFeel("com.sun.java.swing.plaf.windows.WindowsClassicLookAndFeel");
         } catch (Exception e) {
             try {
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
             } catch (Exception ex) {
-                // Fallback to default Swing Look and Feel
+                try {
+                    UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+                } catch (Exception ignored) {
+                }
             }
         }
-    }
-
-    /**
-     * Creates and displays the main Swing JFrame and confirms JavaFX initializes via JFXPanel.
-     */
-    private static void createAndShowGui() {
-        // Instantiate JFXPanel once to confirm JavaFX initializes alongside Swing
-        new JFXPanel();
-
-        JFrame frame = new JFrame("RetroAmp98");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setPreferredSize(new Dimension(480, 260));
-
-        JLabel label = new JLabel("RetroAmp98 - Windows 98 Media Player", SwingConstants.CENTER);
-        frame.getContentPane().add(label, BorderLayout.CENTER);
-
-        frame.pack();
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
     }
 }

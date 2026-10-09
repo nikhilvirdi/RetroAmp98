@@ -16,4 +16,17 @@ public final class TimeUtils {
         int seconds = totalSeconds % 60;
         return String.format("%02d:%02d", minutes, seconds);
     }
+
+    /**
+     * Formats a java.time.Duration into mm:ss format.
+     */
+    public static String formatDuration(java.time.Duration duration) {
+        if (duration == null || duration.isNegative() || duration.isZero()) {
+            return "00:00";
+        }
+        long totalSeconds = duration.toSeconds();
+        long minutes = totalSeconds / 60;
+        long seconds = totalSeconds % 60;
+        return String.format("%02d:%02d", minutes, seconds);
+    }
 }
