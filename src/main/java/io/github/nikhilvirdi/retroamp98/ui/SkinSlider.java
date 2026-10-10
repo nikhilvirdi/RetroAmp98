@@ -2,7 +2,6 @@ package io.github.nikhilvirdi.retroamp98.ui;
 
 import javax.swing.JSlider;
 import javax.swing.plaf.basic.BasicSliderUI;
-import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GradientPaint;
 import java.awt.Graphics;
@@ -14,12 +13,17 @@ import java.awt.geom.RoundRectangle2D;
 
 /**
  * Windows Media Player 9 Series styled slider.
+ * Supports both horizontal (seek/volume) and vertical (equalizer bands) layouts.
  * Renders a slim recessed metallic track with cyan fill and a glossy rounded silver-blue thumb.
  */
 public class SkinSlider extends JSlider {
 
     public SkinSlider(int min, int max, int value) {
-        super(min, max, value);
+        this(JSlider.HORIZONTAL, min, max, value);
+    }
+
+    public SkinSlider(int orientation, int min, int max, int value) {
+        super(orientation, min, max, value);
         setOpaque(false);
         setFocusable(false);
         setUI(new SkinSliderUI(this));
@@ -50,25 +54,49 @@ public class SkinSlider extends JSlider {
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
             Rectangle tr = trackRect;
-            int ty = tr.y + (tr.height - TRACK_HEIGHT) / 2;
 
-            // Recessed silver background groove
-            RoundRectangle2D groove = new RoundRectangle2D.Double(tr.x, ty, tr.width, TRACK_HEIGHT, 6, 6);
-            g2.setColor(Theme.SLIDER_TRACK_BG);
-            g2.fill(groove);
-            g2.setColor(Theme.SLIDER_TRACK_BORDER);
-            g2.draw(groove);
+            if (slider.getOrientation() == JSlider.VERTICAL) {
+                int tx = tr.x + (tr.width - TRACK_HEIGHT) / 2;
 
-            // Active elapsed fill in rich blue from track start to thumb center
-            int thumbX = thumbRect.x + thumbRect.width / 2;
-            int fillWidth = Math.max(0, thumbX - tr.x);
-            if (fillWidth > 0) {
-                RoundRectangle2D fill = new RoundRectangle2D.Double(tr.x, ty, fillWidth, TRACK_HEIGHT, 6, 6);
-                g2.setPaint(new GradientPaint(
-                        tr.x, ty, Theme.SLIDER_TRACK_FILL,
-                        tr.x, ty + TRACK_HEIGHT, Theme.SLIDER_TRACK_FILL_DARK
-                ));
-                g2.fill(fill);
+                // Recessed silver background groove
+                RoundRectangle2D groove = new RoundRectangle2D.Double(tx, tr.y, TRACK_HEIGHT, tr.height, 6, 6);
+                g2.setColor(Theme.SLIDER_TRACK_BG);
+                g2.fill(groove);
+                g2.setColor(Theme.SLIDER_TRACK_BORDER);
+                g2.draw(groove);
+
+                // Active fill from bottom to thumb
+                int thumbY = thumbRect.y + thumbRect.height / 2;
+                int fillHeight = Math.max(0, (tr.y + tr.height) - thumbY);
+                if (fillHeight > 0) {
+                    RoundRectangle2D fill = new RoundRectangle2D.Double(tx, thumbY, TRACK_HEIGHT, fillHeight, 6, 6);
+                    g2.setPaint(new GradientPaint(
+                            tx, thumbY, Theme.SLIDER_TRACK_FILL,
+                            tx + TRACK_HEIGHT, thumbY + fillHeight, Theme.SLIDER_TRACK_FILL_DARK
+                    ));
+                    g2.fill(fill);
+                }
+            } else {
+                int ty = tr.y + (tr.height - TRACK_HEIGHT) / 2;
+
+                // Recessed silver background groove
+                RoundRectangle2D groove = new RoundRectangle2D.Double(tr.x, ty, tr.width, TRACK_HEIGHT, 6, 6);
+                g2.setColor(Theme.SLIDER_TRACK_BG);
+                g2.fill(groove);
+                g2.setColor(Theme.SLIDER_TRACK_BORDER);
+                g2.draw(groove);
+
+                // Active elapsed fill in rich blue from track start to thumb center
+                int thumbX = thumbRect.x + thumbRect.width / 2;
+                int fillWidth = Math.max(0, thumbX - tr.x);
+                if (fillWidth > 0) {
+                    RoundRectangle2D fill = new RoundRectangle2D.Double(tr.x, ty, fillWidth, TRACK_HEIGHT, 6, 6);
+                    g2.setPaint(new GradientPaint(
+                            tr.x, ty, Theme.SLIDER_TRACK_FILL,
+                            tr.x, ty + TRACK_HEIGHT, Theme.SLIDER_TRACK_FILL_DARK
+                    ));
+                    g2.fill(fill);
+                }
             }
 
             g2.dispose();

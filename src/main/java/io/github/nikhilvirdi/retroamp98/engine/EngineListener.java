@@ -55,4 +55,18 @@ public interface EngineListener {
      * @param hasVideo true if loaded media contains an active video track
      */
     default void onHasVideoChanged(boolean hasVideo) {}
+
+    /**
+     * Invoked when media metadata (ID3 tags / cover art) is resolved.
+     *
+     * @param trackInfo resolved metadata record
+     */
+    default void onTrackInfoReady(TrackInfo trackInfo) {}
+
+    /**
+     * Invoked periodically during playback with audio spectrum magnitudes.
+     *
+     * @param magnitudes array of band magnitudes in dB (typically -60dB to 0dB)
+     */
+    default void onSpectrumData(float[] magnitudes) {}
 }

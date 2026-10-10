@@ -27,6 +27,9 @@ public class StatusStrip extends JPanel implements ControllerListener {
     private final LedIndicator ledIndicator;
     private final JLabel statusLabel;
     private final JLabel trackLabel;
+    private final JLabel loopLabel;
+    private final JLabel speedLabel;
+    private final JLabel sleepLabel;
     private final JLabel timeLabel;
 
     public StatusStrip(PlayerController controller) {
@@ -51,18 +54,39 @@ public class StatusStrip extends JPanel implements ControllerListener {
         trackLabel.setFont(Theme.FONT_STATUS_LCD);
         trackLabel.setForeground(Theme.STATUS_LCD_TEXT);
 
+        loopLabel = new JLabel("");
+        loopLabel.setFont(Theme.FONT_STATUS_LCD);
+        loopLabel.setForeground(Theme.STATUS_LCD_TEXT);
+
         leftPanel.add(ledIndicator);
         leftPanel.add(Box.createHorizontalStrut(6));
         leftPanel.add(statusLabel);
         leftPanel.add(trackLabel);
+        leftPanel.add(loopLabel);
 
-        // Right section: Time counter
+        // Right section: Speed + Sleep + Time counter
+        JPanel rightPanel = new JPanel();
+        rightPanel.setOpaque(false);
+        rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.X_AXIS));
+
+        speedLabel = new JLabel("1.0x ");
+        speedLabel.setFont(Theme.FONT_STATUS_LCD);
+        speedLabel.setForeground(Theme.STATUS_LCD_DIM);
+
+        sleepLabel = new JLabel("");
+        sleepLabel.setFont(Theme.FONT_STATUS_LCD);
+        sleepLabel.setForeground(Theme.STATUS_LCD_DIM);
+
         timeLabel = new JLabel("00:00 / 00:00");
         timeLabel.setFont(Theme.FONT_STATUS_LCD);
         timeLabel.setForeground(Theme.STATUS_TIME_TEXT);
 
+        rightPanel.add(sleepLabel);
+        rightPanel.add(speedLabel);
+        rightPanel.add(timeLabel);
+
         add(leftPanel, BorderLayout.WEST);
-        add(timeLabel, BorderLayout.EAST);
+        add(rightPanel, BorderLayout.EAST);
 
         controller.addListener(this);
     }
@@ -120,6 +144,32 @@ public class StatusStrip extends JPanel implements ControllerListener {
             trackLabel.setText(" - No Track Loaded");
             timeLabel.setText("00:00 / 00:00");
         }
+    }
+
+    @Override
+    public void onRateChanged(double rate) {
+        if (Math.abs(rate - 1.0) < 0.001) {
+            speedLabel.setText("1.0x ");
+        } else {
+            speedLabel.setText(String.format("%.2fx ", rate));
+        }
+    }
+
+    @Override
+    public void onTrackInfoReady(io.github.nikhilvirdi.retroamp98.engine.TrackInfo trackInfo) {
+        if (trackInfo != null && trackInfo.getDisplayTitle() != null) {
+            trackLabel.setText(" - " + trackInfo.getDisplayTitle());
+        }
+    }
+
+    @Override
+    public void onLoopChanged(String loopIndicator) {
+        loopLabel.setText(loopIndicator == null || loopIndicator.isEmpty() ? "" : " " + loopIndicator);
+    }
+
+    @Override
+    public void onSleepTimerTick(String sleepRemaining) {
+        sleepLabel.setText(sleepRemaining == null || sleepRemaining.isEmpty() ? "" : sleepRemaining + "  ");
     }
 
     /**

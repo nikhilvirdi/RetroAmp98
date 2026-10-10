@@ -101,6 +101,34 @@ public interface MediaEngine {
      */
     javax.swing.JComponent getVideoComponent();
 
+    /**
+     * Enables or disables the 10-band audio equalizer.
+     *
+     * @param enabled true to activate equalizer filters
+     */
+    void setEqualizerEnabled(boolean enabled);
+
+    /**
+     * Returns true if the equalizer is currently active.
+     */
+    boolean isEqualizerEnabled();
+
+    /**
+     * Sets the gain for a specific equalizer band.
+     *
+     * @param index  band index from 0 to 9
+     * @param gainDb gain in decibels, clamped to safe range
+     */
+    void setEqualizerBand(int index, double gainDb);
+
+    /**
+     * Returns the current gain for a specific equalizer band.
+     *
+     * @param index band index from 0 to 9
+     * @return gain in decibels
+     */
+    double getEqualizerBand(int index);
+
     // --- Listeners ---
 
     /**

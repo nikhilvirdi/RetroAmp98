@@ -27,12 +27,18 @@ public class TransportBar extends JPanel implements ControllerListener {
     private final RoundGlossButton muteButton;
     private final SkinSlider volumeSlider;
 
+    private final RoundGlossButton skipBackBtn;
+    private final RoundGlossButton skipFwdBtn;
+    private final RoundGlossButton speedButton;
+
     private final RoundGlossButton repeatButton;
     private final RoundGlossButton shuffleButton;
     private final RoundGlossButton playlistButton;
 
     private java.util.function.Consumer<Boolean> playlistToggleListener;
     private RepeatMode currentRepeatMode = RepeatMode.OFF;
+    private static final double[] SPEEDS = {0.5, 0.75, 1.0, 1.25, 1.5, 2.0};
+    private int currentSpeedIndex = 2; // 1.0x
 
     public TransportBar(PlayerController controller) {
         this.controller = controller;
@@ -45,8 +51,15 @@ public class TransportBar extends JPanel implements ControllerListener {
         controlsGroup.setOpaque(false);
 
         prevButton = new RoundGlossButton(RoundGlossButton.IconType.PREV, 30, "Previous Track");
+        skipBackBtn = new RoundGlossButton("-10", 34, 22, "Skip Backward 10 Seconds");
+        skipBackBtn.addActionListener(e -> controller.skip(-10));
+
         playPauseButton = new RoundGlossButton(RoundGlossButton.IconType.PLAY, 42, "Play / Pause");
         stopButton = new RoundGlossButton(RoundGlossButton.IconType.STOP, 30, "Stop");
+
+        skipFwdBtn = new RoundGlossButton("+10", 34, 22, "Skip Forward 10 Seconds");
+        skipFwdBtn.addActionListener(e -> controller.skip(10));
+
         nextButton = new RoundGlossButton(RoundGlossButton.IconType.NEXT, 30, "Next Track");
 
         prevButton.addActionListener(e -> controller.previous());
@@ -55,11 +68,21 @@ public class TransportBar extends JPanel implements ControllerListener {
         nextButton.addActionListener(e -> controller.next());
 
         controlsGroup.add(prevButton);
+        controlsGroup.add(skipBackBtn);
         controlsGroup.add(playPauseButton);
         controlsGroup.add(stopButton);
+        controlsGroup.add(skipFwdBtn);
         controlsGroup.add(nextButton);
 
-        controlsGroup.add(Box.createHorizontalStrut(8));
+        controlsGroup.add(Box.createHorizontalStrut(6));
+
+        // Speed cycle button
+        speedButton = new RoundGlossButton("1.0x", 42, 22, "Playback Speed (0.5x - 2.0x)");
+        speedButton.setSelectedToggle(false);
+        speedButton.addActionListener(e -> cycleSpeed());
+        controlsGroup.add(speedButton);
+
+        controlsGroup.add(Box.createHorizontalStrut(4));
 
         // Mode toggles (shared compact glossy pill style with clear active highlight state)
         repeatButton = new RoundGlossButton("Rpt: Off", 60, 22, "Repeat Mode (Off / All / One)");
@@ -176,5 +199,27 @@ public class TransportBar extends JPanel implements ControllerListener {
     public void onShuffleChanged(boolean shuffle) {
         shuffleButton.setText(shuffle ? "Shuf: On" : "Shuf: Off");
         shuffleButton.setSelectedToggle(shuffle);
+    }
+
+    @Override
+    public void onRateChanged(double rate) {
+        if (Math.abs(rate - 1.0) < 0.001) {
+            speedButton.setText("1.0x");
+            speedButton.setSelectedToggle(false);
+        } else {
+            speedButton.setText(String.format("%.2gx", rate));
+            speedButton.setSelectedToggle(true);
+        }
+        for (int i = 0; i < SPEEDS.length; i++) {
+            if (Math.abs(SPEEDS[i] - rate) < 0.01) {
+                currentSpeedIndex = i;
+                break;
+            }
+        }
+    }
+
+    private void cycleSpeed() {
+        currentSpeedIndex = (currentSpeedIndex + 1) % SPEEDS.length;
+        controller.setRate(SPEEDS[currentSpeedIndex]);
     }
 }

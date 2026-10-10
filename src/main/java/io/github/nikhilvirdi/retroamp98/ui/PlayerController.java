@@ -13,6 +13,7 @@ import io.github.nikhilvirdi.retroamp98.playlist.Track;
 
 import javax.swing.JOptionPane;
 import java.awt.Component;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -30,6 +31,11 @@ public class PlayerController implements EngineListener, PlaylistListener {
     private final MediaEngine mediaEngine;
     private final PlaylistManager playlistManager;
     private final List<ControllerListener> listeners = new CopyOnWriteArrayList<>();
+
+    private final io.github.nikhilvirdi.retroamp98.engine.AbLoop abLoop = new io.github.nikhilvirdi.retroamp98.engine.AbLoop();
+    private javax.swing.Timer sleepTimer;
+    private int sleepSecondsRemaining = 0;
+    private boolean sleepAtEndOfTrack = false;
 
     private Component parentWindow;
 
@@ -152,9 +158,126 @@ public class PlayerController implements EngineListener, PlaylistListener {
         notifyVolumeChanged(mediaEngine.getVolume(), muted);
     }
 
+    public boolean isMuted() {
+        return mediaEngine.isMuted();
+    }
+
+    public void toggleMute() {
+        setMuted(!mediaEngine.isMuted());
+    }
+
+    public void setRate(double rate) {
+        mediaEngine.setRate(rate);
+        for (ControllerListener l : listeners) {
+            l.onRateChanged(rate);
+        }
+    }
+
+    public double getRate() {
+        return mediaEngine.getRate();
+    }
+
+    public void skip(int seconds) {
+        Duration current = mediaEngine.getPosition();
+        long targetMillis = Math.max(0, current.toMillis() + (seconds * 1000L));
+        Duration total = mediaEngine.getDuration();
+        if (total != null && !total.isZero()) {
+            targetMillis = Math.min(total.toMillis(), targetMillis);
+        }
+        seek(Duration.ofMillis(targetMillis));
+    }
+
+    // --- A-B Loop Control ---
+
+    public void setLoopA() {
+        abLoop.setA(mediaEngine.getPosition());
+        notifyLoopChanged();
+    }
+
+    public void setLoopB() {
+        abLoop.setB(mediaEngine.getPosition());
+        notifyLoopChanged();
+    }
+
+    public void clearLoop() {
+        abLoop.clear();
+        notifyLoopChanged();
+    }
+
+    public io.github.nikhilvirdi.retroamp98.engine.AbLoop getAbLoop() {
+        return abLoop;
+    }
+
+    private void notifyLoopChanged() {
+        String ind = abLoop.getStatusIndicator();
+        for (ControllerListener l : listeners) {
+            l.onLoopChanged(ind);
+        }
+    }
+
+    // --- Sleep Timer Control ---
+
+    public void setSleepTimerMinutes(int minutes) {
+        if (sleepTimer != null) {
+            sleepTimer.stop();
+        }
+        sleepAtEndOfTrack = false;
+        if (minutes <= 0) {
+            sleepSecondsRemaining = 0;
+            notifySleepTimerTick("");
+            return;
+        }
+
+        sleepSecondsRemaining = minutes * 60;
+        notifySleepTimerTick(formatSleepRemaining(sleepSecondsRemaining));
+
+        sleepTimer = new javax.swing.Timer(1000, e -> {
+            sleepSecondsRemaining--;
+            if (sleepSecondsRemaining <= 0) {
+                sleepTimer.stop();
+                pause();
+                notifySleepTimerTick("");
+            } else {
+                notifySleepTimerTick(formatSleepRemaining(sleepSecondsRemaining));
+            }
+        });
+        sleepTimer.start();
+    }
+
+    public void setSleepAtEndOfTrack(boolean endOfTrack) {
+        if (sleepTimer != null) {
+            sleepTimer.stop();
+        }
+        this.sleepAtEndOfTrack = endOfTrack;
+        this.sleepSecondsRemaining = 0;
+        notifySleepTimerTick(endOfTrack ? "Sleep: End" : "");
+    }
+
+    private void notifySleepTimerTick(String text) {
+        for (ControllerListener l : listeners) {
+            l.onSleepTimerTick(text);
+        }
+    }
+
+    private String formatSleepRemaining(int totalSeconds) {
+        int m = totalSeconds / 60;
+        int s = totalSeconds % 60;
+        return String.format("Sleep: %02d:%02d", m, s);
+    }
+
     public void setRepeatMode(RepeatMode mode) {
         playlistManager.setRepeatMode(mode);
         notifyRepeatModeChanged(mode);
+    }
+
+    public void cycleRepeatMode() {
+        RepeatMode current = playlistManager.getRepeatMode();
+        RepeatMode next = switch (current) {
+            case OFF -> RepeatMode.ONE;
+            case ONE -> RepeatMode.ALL;
+            case ALL -> RepeatMode.OFF;
+        };
+        setRepeatMode(next);
     }
 
     public void setShuffle(boolean shuffle) {
@@ -162,11 +285,72 @@ public class PlayerController implements EngineListener, PlaylistListener {
         notifyShuffleChanged(shuffle);
     }
 
+    public void toggleShuffle() {
+        setShuffle(!playlistManager.isShuffle());
+    }
+
+    public void handleDroppedFiles(List<File> files) {
+        if (files == null || files.isEmpty()) return;
+        if (files.size() == 1 && files.get(0).isDirectory()) {
+            openFolder(files.get(0).toPath());
+            return;
+        }
+        if (files.size() == 1) {
+            String name = files.get(0).getName().toLowerCase();
+            if (name.endsWith(".m3u") || name.endsWith(".m3u8")) {
+                openPlaylist(files.get(0).toPath());
+                return;
+            }
+        }
+        List<Path> paths = new java.util.ArrayList<>();
+        for (File f : files) {
+            if (f.isDirectory()) {
+                paths.addAll(FolderImporter.findMediaFiles(f.toPath()));
+            } else if (FolderImporter.isSupported(f.toPath())) {
+                paths.add(f.toPath());
+            }
+        }
+        if (!paths.isEmpty()) {
+            openFiles(paths);
+        }
+    }
+
     // --- Playlist File Operations ---
 
     public void openFiles(List<Path> filePaths) {
         if (filePaths == null || filePaths.isEmpty()) return;
-        List<Track> tracks = filePaths.stream().map(Track::new).toList();
+
+        List<Path> supported = new java.util.ArrayList<>();
+        List<Path> unsupported = new java.util.ArrayList<>();
+        for (Path p : filePaths) {
+            if (FolderImporter.isSupported(p)) {
+                supported.add(p);
+            } else {
+                unsupported.add(p);
+            }
+        }
+
+        if (!unsupported.isEmpty() && supported.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                    parentWindow,
+                    "Unsupported file format:\n" + unsupported.get(0).getFileName()
+                            + "\n\nRetroAmp98 supports the following formats:\n.mp3, .wav, .aac, .m4a, .mp4",
+                    "Unsupported Format",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            return;
+        }
+
+        if (!unsupported.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                    parentWindow,
+                    unsupported.size() + " unsupported file(s) skipped.\nSupported formats: .mp3, .wav, .aac, .m4a, .mp4",
+                    "Format Notice",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+        }
+
+        List<Track> tracks = supported.stream().map(Track::new).toList();
         boolean wasEmpty = playlistManager.getPlaylist().isEmpty();
         playlistManager.addTracks(tracks);
 
@@ -274,6 +458,13 @@ public class PlayerController implements EngineListener, PlaylistListener {
 
     @Override
     public void onPositionChanged(Duration position) {
+        // Enforce A-B loop boundary
+        Duration loopSeek = abLoop.checkLoop(position);
+        if (loopSeek != null) {
+            mediaEngine.seek(loopSeek);
+            return;
+        }
+
         Duration total = mediaEngine.getDuration();
         for (ControllerListener l : listeners) {
             l.onPositionChanged(position, total);
@@ -289,6 +480,13 @@ public class PlayerController implements EngineListener, PlaylistListener {
 
     @Override
     public void onEndOfMedia() {
+        if (sleepAtEndOfTrack) {
+            sleepAtEndOfTrack = false;
+            mediaEngine.pause();
+            notifySleepTimerTick("");
+            return;
+        }
+
         // Auto-advance according to RepeatMode
         Track nextTrack = playlistManager.next();
         if (nextTrack != null) {
@@ -320,6 +518,20 @@ public class PlayerController implements EngineListener, PlaylistListener {
     public void onHasVideoChanged(boolean hasVideo) {
         for (ControllerListener l : listeners) {
             l.onHasVideoChanged(hasVideo);
+        }
+    }
+
+    @Override
+    public void onTrackInfoReady(io.github.nikhilvirdi.retroamp98.engine.TrackInfo trackInfo) {
+        for (ControllerListener l : listeners) {
+            l.onTrackInfoReady(trackInfo);
+        }
+    }
+
+    @Override
+    public void onSpectrumData(float[] magnitudes) {
+        for (ControllerListener l : listeners) {
+            l.onSpectrumData(magnitudes);
         }
     }
 

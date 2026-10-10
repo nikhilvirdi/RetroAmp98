@@ -34,6 +34,7 @@ public class PlaylistPanel extends JPanel implements ControllerListener {
     private final PlayerController controller;
     private final DefaultListModel<Track> listModel = new DefaultListModel<>();
     private final JList<Track> trackList = new JList<>(listModel);
+    private final java.util.Map<Integer, String> tagTitles = new java.util.HashMap<>();
     private int activeIndex = -1;
 
     public PlaylistPanel(PlayerController controller) {
@@ -153,6 +154,14 @@ public class PlaylistPanel extends JPanel implements ControllerListener {
         }
     }
 
+    @Override
+    public void onTrackInfoReady(io.github.nikhilvirdi.retroamp98.engine.TrackInfo trackInfo) {
+        if (trackInfo != null && trackInfo.getDisplayTitle() != null && activeIndex >= 0) {
+            tagTitles.put(activeIndex, trackInfo.getDisplayTitle());
+            trackList.repaint();
+        }
+    }
+
     private class WmpTrackCellRenderer extends DefaultListCellRenderer {
         @Override
         public Component getListCellRendererComponent(JList<?> list, Object value, int index,
@@ -162,7 +171,13 @@ public class PlaylistPanel extends JPanel implements ControllerListener {
             if (value instanceof Track track) {
                 boolean isActive = (index == activeIndex);
                 String prefix = isActive ? "\u25B6 " : "   ";
-                setText(prefix + (index + 1) + ". " + track.getTitle());
+                String displayTitle = tagTitles.get(index);
+                if (displayTitle == null) {
+                    displayTitle = (track.getArtist() != null && !track.getArtist().isBlank())
+                            ? track.getArtist() + " - " + track.getTitle()
+                            : track.getTitle();
+                }
+                setText(prefix + (index + 1) + ". " + displayTitle);
 
                 if (isActive) {
                     setFont(Theme.FONT_PLAYLIST_ACTIVE);

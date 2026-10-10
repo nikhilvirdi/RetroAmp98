@@ -20,17 +20,13 @@ import java.time.Duration;
  */
 public class LcdPanel extends JPanel implements ControllerListener {
 
-    private static final Color LCD_BACKGROUND = new Color(12, 22, 12);
-    private static final Color LCD_FOREGROUND = new Color(50, 255, 50);
-    private static final Color LCD_DIM = new Color(30, 160, 30);
-
     private final JLabel titleLabel;
     private final JLabel statusLabel;
     private final JLabel timeLabel;
 
     public LcdPanel(PlayerController controller) {
         setLayout(new BorderLayout(0, 4));
-        setBackground(LCD_BACKGROUND);
+        setBackground(Theme.STATUS_BG_TOP);
         setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLoweredBevelBorder(),
                 BorderFactory.createEmptyBorder(6, 10, 6, 10)
@@ -42,7 +38,7 @@ public class LcdPanel extends JPanel implements ControllerListener {
         // Title row
         titleLabel = new JLabel("RetroAmp98 - Ready", SwingConstants.LEFT);
         titleLabel.setFont(monoBoldLarge);
-        titleLabel.setForeground(LCD_FOREGROUND);
+        titleLabel.setForeground(Theme.STATUS_LCD_TEXT);
         add(titleLabel, BorderLayout.NORTH);
 
         // Bottom status row (State on left, Time on right)
@@ -51,12 +47,12 @@ public class LcdPanel extends JPanel implements ControllerListener {
 
         statusLabel = new JLabel("[IDLE]", SwingConstants.LEFT);
         statusLabel.setFont(monoBoldSmall);
-        statusLabel.setForeground(LCD_DIM);
+        statusLabel.setForeground(Theme.STATUS_LCD_DIM);
         statusRow.add(statusLabel, BorderLayout.WEST);
 
         timeLabel = new JLabel("00:00 / 00:00", SwingConstants.RIGHT);
         timeLabel.setFont(monoBoldLarge);
-        timeLabel.setForeground(LCD_FOREGROUND);
+        timeLabel.setForeground(Theme.STATUS_LCD_TEXT);
         statusRow.add(timeLabel, BorderLayout.EAST);
 
         add(statusRow, BorderLayout.SOUTH);
@@ -92,6 +88,13 @@ public class LcdPanel extends JPanel implements ControllerListener {
         } else {
             titleLabel.setText("RetroAmp98 - No Track Loaded");
             timeLabel.setText("00:00 / 00:00");
+        }
+    }
+
+    @Override
+    public void onTrackInfoReady(io.github.nikhilvirdi.retroamp98.engine.TrackInfo trackInfo) {
+        if (trackInfo != null && trackInfo.getDisplayTitle() != null) {
+            titleLabel.setText(trackInfo.getDisplayTitle());
         }
     }
 }
