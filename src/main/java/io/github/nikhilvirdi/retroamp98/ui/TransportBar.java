@@ -61,19 +61,22 @@ public class TransportBar extends JPanel implements ControllerListener {
 
         controlsGroup.add(Box.createHorizontalStrut(8));
 
-        // Mode toggles
-        repeatButton = new RoundGlossButton("Rpt: Off", 56, 22, "Repeat Mode");
+        // Mode toggles (shared compact glossy pill style with clear active highlight state)
+        repeatButton = new RoundGlossButton("Rpt: Off", 60, 22, "Repeat Mode (Off / All / One)");
+        repeatButton.setSelectedToggle(false);
         repeatButton.addActionListener(e -> cycleRepeatMode());
 
-        shuffleButton = new RoundGlossButton("Shuf", 44, 22, "Shuffle Mode");
+        shuffleButton = new RoundGlossButton("Shuf: Off", 60, 22, "Toggle Shuffle (On / Off)");
+        shuffleButton.setSelectedToggle(false);
         shuffleButton.addActionListener(e -> {
             boolean nextVal = !shuffleButton.isSelectedToggle();
             shuffleButton.setSelectedToggle(nextVal);
+            shuffleButton.setText(nextVal ? "Shuf: On" : "Shuf: Off");
             controller.setShuffle(nextVal);
         });
 
-        playlistButton = new RoundGlossButton("PL", 32, 22, "Toggle Playlist");
-        playlistButton.setSelectedToggle(true);
+        playlistButton = new RoundGlossButton("PL", 36, 22, "Toggle Playlist Panel");
+        playlistButton.setSelectedToggle(false);
         playlistButton.addActionListener(e -> {
             boolean nextVal = !playlistButton.isSelectedToggle();
             playlistButton.setSelectedToggle(nextVal);
@@ -154,14 +157,24 @@ public class TransportBar extends JPanel implements ControllerListener {
     public void onRepeatModeChanged(RepeatMode mode) {
         this.currentRepeatMode = mode;
         switch (mode) {
-            case OFF -> repeatButton.setText("Rpt: Off");
-            case ALL -> repeatButton.setText("Rpt: All");
-            case ONE -> repeatButton.setText("Rpt: 1");
+            case OFF -> {
+                repeatButton.setText("Rpt: Off");
+                repeatButton.setSelectedToggle(false);
+            }
+            case ALL -> {
+                repeatButton.setText("Rpt: All");
+                repeatButton.setSelectedToggle(true);
+            }
+            case ONE -> {
+                repeatButton.setText("Rpt: One");
+                repeatButton.setSelectedToggle(true);
+            }
         }
     }
 
     @Override
     public void onShuffleChanged(boolean shuffle) {
+        shuffleButton.setText(shuffle ? "Shuf: On" : "Shuf: Off");
         shuffleButton.setSelectedToggle(shuffle);
     }
 }

@@ -95,6 +95,12 @@ public interface MediaEngine {
      */
     double getRate();
 
+    /**
+     * Returns the plain Swing component surface used for rendering video.
+     * Contains no JavaFX types in its public interface.
+     */
+    javax.swing.JComponent getVideoComponent();
+
     // --- Listeners ---
 
     /**

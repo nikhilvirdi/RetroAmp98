@@ -119,7 +119,7 @@ public class RoundGlossButton extends JButton {
 
     private void paintCircularButton(Graphics2D g2, int x, int y, int size, boolean pressed) {
         // Outer dark shadow ring
-        g2.setColor(new Color(0x15, 0x24, 0x35, 180));
+        g2.setColor(Theme.BTN_SHADOW_RING);
         g2.fillOval(x, y + 1, size, size);
 
         // Base metallic gradient
@@ -143,8 +143,8 @@ public class RoundGlossButton extends JButton {
             int glossY = y + 2;
 
             GradientPaint glossGrad = new GradientPaint(
-                    glossX, glossY, new Color(255, 255, 255, 200),
-                    glossX, glossY + glossH, new Color(255, 255, 255, 10)
+                    glossX, glossY, Theme.BTN_GLOSS_TOP,
+                    glossX, glossY + glossH, Theme.BTN_GLOSS_BOTTOM
             );
             g2.setPaint(glossGrad);
             g2.fill(new Ellipse2D.Double(glossX, glossY, glossW, glossH));
@@ -157,10 +157,31 @@ public class RoundGlossButton extends JButton {
 
     private void paintPillButton(Graphics2D g2, int x, int y, int w, int h, boolean pressed) {
         int arc = h;
-        // Base metallic gradient
-        Color top = pressed ? Theme.BTN_PRESSED_TOP : (isHovered ? Theme.BTN_HOVER_GLOW : Theme.BTN_GRAD_TOP);
-        Color mid = pressed ? Theme.BTN_PRESSED_BOTTOM : Theme.BTN_GRAD_MID;
-        Color bottom = pressed ? Theme.BTN_GRAD_MID : Theme.BTN_GRAD_BOTTOM;
+        Color top;
+        Color mid;
+        Color bottom;
+        Color border;
+
+        if (isSelectedToggle) {
+            top = Theme.BTN_ACTIVE_GRAD_TOP;
+            mid = Theme.BTN_ACTIVE_GRAD_MID;
+            bottom = Theme.BTN_ACTIVE_GRAD_BOTTOM;
+            border = Theme.BTN_ACTIVE_BORDER;
+
+            // Outer cyan glow ring
+            g2.setColor(Theme.BTN_ACTIVE_GLOW);
+            g2.draw(new RoundRectangle2D.Double(x - 1, y - 1, w + 2, h + 2, arc + 2, arc + 2));
+        } else if (pressed) {
+            top = Theme.BTN_PRESSED_TOP;
+            mid = Theme.BTN_PRESSED_BOTTOM;
+            bottom = Theme.BTN_PRESSED_BOTTOM;
+            border = Theme.BTN_BORDER;
+        } else {
+            top = isHovered ? Theme.BTN_HOVER_GLOW : Theme.BTN_GRAD_TOP;
+            mid = Theme.BTN_GRAD_MID;
+            bottom = Theme.BTN_GRAD_BOTTOM;
+            border = isHovered ? Theme.BTN_HOVER_GLOW : Theme.BTN_BORDER;
+        }
 
         LinearGradientPaint baseGrad = new LinearGradientPaint(
                 x, y, x, y + h,
@@ -173,14 +194,14 @@ public class RoundGlossButton extends JButton {
         if (!pressed) {
             // Pill top gloss
             GradientPaint glossGrad = new GradientPaint(
-                    x, y, new Color(255, 255, 255, 170),
-                    x, y + h / 2.0f, new Color(255, 255, 255, 15)
+                    x, y, isSelectedToggle ? Theme.BTN_PILL_ACTIVE_GLOSS_TOP : Theme.BTN_PILL_GLOSS_TOP,
+                    x, y + h / 2.0f, Theme.BTN_PILL_GLOSS_BOTTOM
             );
             g2.setPaint(glossGrad);
             g2.fill(new RoundRectangle2D.Double(x + 2, y + 1, w - 4, (h / 2.0) - 1, arc / 2.0, arc / 2.0));
         }
 
-        g2.setColor(isHovered ? Theme.BTN_HOVER_GLOW : Theme.BTN_BORDER);
+        g2.setColor(border);
         g2.draw(new RoundRectangle2D.Double(x, y, w, h, arc, arc));
     }
 
@@ -188,7 +209,7 @@ public class RoundGlossButton extends JButton {
         int cx = w / 2;
         int cy = h / 2 + (pressed ? 1 : 0);
 
-        Color iconColor = isHovered ? Color.WHITE : Theme.BTN_ICON_NORMAL;
+        Color iconColor = isHovered ? Theme.BTN_ICON_HOVER : Theme.BTN_ICON_NORMAL;
         Color shadowColor = Theme.BTN_ICON_SHADOW;
 
         switch (iconType) {
@@ -274,10 +295,19 @@ public class RoundGlossButton extends JButton {
                     int tx = cx - tw / 2;
                     int ty = cy + th / 2 - 2;
 
+                    Color txtColor;
+                    if (isSelectedToggle) {
+                        txtColor = Theme.BTN_ACTIVE_TEXT;
+                    } else if (isHovered) {
+                        txtColor = Theme.BTN_TEXT_HOVER;
+                    } else {
+                        txtColor = Theme.BTN_TEXT_INACTIVE;
+                    }
+
                     // Text shadow
-                    g2.setColor(shadowColor);
+                    g2.setColor(isSelectedToggle ? Theme.BTN_BORDER : Theme.BTN_ICON_SHADOW);
                     g2.drawString(text, tx + 1, ty + 1);
-                    g2.setColor(iconColor);
+                    g2.setColor(txtColor);
                     g2.drawString(text, tx, ty);
                 }
             }

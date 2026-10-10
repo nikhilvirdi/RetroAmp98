@@ -40,4 +40,19 @@ public interface EngineListener {
      * @param message descriptive error message
      */
     void onError(String message);
+
+    /**
+     * Invoked when video dimensions become known.
+     *
+     * @param width  native video width in pixels
+     * @param height native video height in pixels
+     */
+    default void onVideoSizeKnown(int width, int height) {}
+
+    /**
+     * Invoked when media changes between video and audio-only.
+     *
+     * @param hasVideo true if loaded media contains an active video track
+     */
+    default void onHasVideoChanged(boolean hasVideo) {}
 }

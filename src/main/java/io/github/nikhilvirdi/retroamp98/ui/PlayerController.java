@@ -309,6 +309,20 @@ public class PlayerController implements EngineListener, PlaylistListener {
         );
     }
 
+    @Override
+    public void onVideoSizeKnown(int width, int height) {
+        for (ControllerListener l : listeners) {
+            l.onVideoSizeKnown(width, height);
+        }
+    }
+
+    @Override
+    public void onHasVideoChanged(boolean hasVideo) {
+        for (ControllerListener l : listeners) {
+            l.onHasVideoChanged(hasVideo);
+        }
+    }
+
     // --- PlaylistListener Callbacks (from PlaylistManager) ---
 
     @Override

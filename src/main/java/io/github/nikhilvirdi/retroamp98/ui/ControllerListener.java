@@ -19,4 +19,6 @@ public interface ControllerListener {
     default void onRepeatModeChanged(RepeatMode mode) {}
     default void onShuffleChanged(boolean shuffle) {}
     default void onPlaylistUpdated() {}
+    default void onVideoSizeKnown(int width, int height) {}
+    default void onHasVideoChanged(boolean hasVideo) {}
 }

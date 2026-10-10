@@ -101,9 +101,10 @@ public class MainWindow extends JFrame implements ControllerListener {
 
         centerWorkspace.add(videoContainer, BorderLayout.CENTER);
 
-        // Collapsible Playlist Panel on the side
+        // Collapsible Playlist Panel on the side (starts collapsed so video has full width)
         playlistPanel = new PlaylistPanel(controller);
         playlistPanel.setPreferredSize(new Dimension(250, 200));
+        playlistPanel.setVisible(false);
         centerWorkspace.add(playlistPanel, BorderLayout.EAST);
 
         rootPanel.add(centerWorkspace, BorderLayout.CENTER);
@@ -119,6 +120,7 @@ public class MainWindow extends JFrame implements ControllerListener {
 
         transportBar = new TransportBar(controller);
         transportBar.setOnPlaylistToggle(this::setPlaylistVisible);
+        transportBar.setPlaylistButtonSelected(false);
 
         bottomControls.add(seekBar);
         bottomControls.add(transportBar);
@@ -151,10 +153,25 @@ public class MainWindow extends JFrame implements ControllerListener {
     }
 
     private JMenuBar buildMenuBar() {
-        JMenuBar menuBar = new JMenuBar();
+        JMenuBar menuBar = new JMenuBar() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                java.awt.GradientPaint menuGrad = new java.awt.GradientPaint(
+                        0, 0, Theme.MENUBAR_BG_TOP,
+                        0, getHeight(), Theme.MENUBAR_BG_BOTTOM
+                );
+                g2.setPaint(menuGrad);
+                g2.fillRect(0, 0, getWidth(), getHeight());
+                g2.dispose();
+            }
+        };
+        menuBar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Theme.MENUBAR_BORDER));
 
         // --- File Menu ---
         JMenu fileMenu = new JMenu("File");
+        fileMenu.setForeground(Theme.MENUBAR_TEXT);
 
         JMenuItem openFileItem = new JMenuItem("Open File...");
         openFileItem.addActionListener(e -> handleOpenFile());
@@ -183,6 +200,7 @@ public class MainWindow extends JFrame implements ControllerListener {
 
         // --- Play Menu ---
         JMenu playMenu = new JMenu("Play");
+        playMenu.setForeground(Theme.MENUBAR_TEXT);
 
         JMenuItem playPauseItem = new JMenuItem("Play / Pause");
         playPauseItem.addActionListener(e -> controller.playPause());
@@ -230,12 +248,14 @@ public class MainWindow extends JFrame implements ControllerListener {
 
         // --- View Menu ---
         JMenu viewMenu = new JMenu("View");
-        playlistViewItem = new JCheckBoxMenuItem("Playlist", true);
+        viewMenu.setForeground(Theme.MENUBAR_TEXT);
+        playlistViewItem = new JCheckBoxMenuItem("Playlist", false);
         playlistViewItem.addActionListener(e -> setPlaylistVisible(playlistViewItem.isSelected()));
         viewMenu.add(playlistViewItem);
 
         // --- Help Menu ---
         JMenu helpMenu = new JMenu("Help");
+        helpMenu.setForeground(Theme.MENUBAR_TEXT);
         JMenuItem aboutItem = new JMenuItem("About RetroAmp98");
         aboutItem.addActionListener(e -> showAboutDialog());
         helpMenu.add(aboutItem);

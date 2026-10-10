@@ -70,7 +70,7 @@ public class PlaylistPanel extends JPanel implements ControllerListener {
         trackList.setBackground(Theme.PLAYLIST_BG);
         trackList.setForeground(Theme.PLAYLIST_TEXT);
         trackList.setSelectionBackground(Theme.PLAYLIST_SELECTION_BG);
-        trackList.setSelectionForeground(Color.WHITE);
+        trackList.setSelectionForeground(Theme.PLAYLIST_SELECTION_TEXT);
         trackList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         trackList.setCellRenderer(new WmpTrackCellRenderer());
 
@@ -166,10 +166,10 @@ public class PlaylistPanel extends JPanel implements ControllerListener {
 
                 if (isActive) {
                     setFont(Theme.FONT_PLAYLIST_ACTIVE);
-                    setForeground(isSelected ? Color.WHITE : Theme.PLAYLIST_ACTIVE_TEXT);
+                    setForeground(isSelected ? Theme.PLAYLIST_SELECTION_TEXT : Theme.PLAYLIST_ACTIVE_TEXT);
                 } else {
                     setFont(Theme.FONT_PLAYLIST_ITEM);
-                    setForeground(isSelected ? Color.WHITE : Theme.PLAYLIST_TEXT);
+                    setForeground(isSelected ? Theme.PLAYLIST_SELECTION_TEXT : Theme.PLAYLIST_TEXT);
                 }
 
                 setBackground(isSelected ? Theme.PLAYLIST_SELECTION_BG : Theme.PLAYLIST_BG);

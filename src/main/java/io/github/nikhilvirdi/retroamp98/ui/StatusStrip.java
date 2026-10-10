@@ -44,12 +44,12 @@ public class StatusStrip extends JPanel implements ControllerListener {
 
         ledIndicator = new LedIndicator();
         statusLabel = new JLabel("Stopped");
-        statusLabel.setFont(Theme.FONT_STATUS_TITLE);
-        statusLabel.setForeground(Theme.STATUS_TEXT_PRIMARY);
+        statusLabel.setFont(Theme.FONT_STATUS_LCD);
+        statusLabel.setForeground(Theme.STATUS_LCD_TEXT);
 
         trackLabel = new JLabel(" - Ready");
-        trackLabel.setFont(Theme.FONT_STATUS_TIME);
-        trackLabel.setForeground(Theme.STATUS_TEXT_SECONDARY);
+        trackLabel.setFont(Theme.FONT_STATUS_LCD);
+        trackLabel.setForeground(Theme.STATUS_LCD_TEXT);
 
         leftPanel.add(ledIndicator);
         leftPanel.add(Box.createHorizontalStrut(6));
@@ -58,8 +58,8 @@ public class StatusStrip extends JPanel implements ControllerListener {
 
         // Right section: Time counter
         timeLabel = new JLabel("00:00 / 00:00");
-        timeLabel.setFont(Theme.FONT_STATUS_TIME);
-        timeLabel.setForeground(Theme.STATUS_TEXT_PRIMARY);
+        timeLabel.setFont(Theme.FONT_STATUS_LCD);
+        timeLabel.setForeground(Theme.STATUS_TIME_TEXT);
 
         add(leftPanel, BorderLayout.WEST);
         add(timeLabel, BorderLayout.EAST);
@@ -158,7 +158,7 @@ public class StatusStrip extends JPanel implements ControllerListener {
 
             // Glow aura when playing
             if (state == PlayerState.PLAYING) {
-                g2.setColor(new java.awt.Color(0, 230, 77, 70));
+                g2.setColor(Theme.STATUS_LED_GLOW);
                 g2.fillRoundRect(x - 2, y - 2, size + 4, size + 4, 3, 3);
             }
 
@@ -167,7 +167,7 @@ public class StatusStrip extends JPanel implements ControllerListener {
             g2.fillRect(x, y, size, size);
 
             // Specular highlight dot
-            g2.setColor(new java.awt.Color(255, 255, 255, 140));
+            g2.setColor(Theme.STATUS_LED_HIGHLIGHT);
             g2.fillRect(x, y, 2, 2);
 
             // Dark border

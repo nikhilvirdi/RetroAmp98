@@ -27,8 +27,8 @@ public class SkinSlider extends JSlider {
 
     private static class SkinSliderUI extends BasicSliderUI {
 
-        private static final int TRACK_HEIGHT = 4;
-        private static final int THUMB_SIZE = 12;
+        private static final int TRACK_HEIGHT = 6;
+        private static final int THUMB_SIZE = 14;
 
         public SkinSliderUI(JSlider b) {
             super(b);
@@ -52,21 +52,21 @@ public class SkinSlider extends JSlider {
             Rectangle tr = trackRect;
             int ty = tr.y + (tr.height - TRACK_HEIGHT) / 2;
 
-            // Recessed background groove
-            RoundRectangle2D groove = new RoundRectangle2D.Double(tr.x, ty, tr.width, TRACK_HEIGHT, 4, 4);
+            // Recessed silver background groove
+            RoundRectangle2D groove = new RoundRectangle2D.Double(tr.x, ty, tr.width, TRACK_HEIGHT, 6, 6);
             g2.setColor(Theme.SLIDER_TRACK_BG);
             g2.fill(groove);
             g2.setColor(Theme.SLIDER_TRACK_BORDER);
             g2.draw(groove);
 
-            // Active elapsed fill from track start to thumb center
+            // Active elapsed fill in rich blue from track start to thumb center
             int thumbX = thumbRect.x + thumbRect.width / 2;
             int fillWidth = Math.max(0, thumbX - tr.x);
             if (fillWidth > 0) {
-                RoundRectangle2D fill = new RoundRectangle2D.Double(tr.x, ty, fillWidth, TRACK_HEIGHT, 4, 4);
+                RoundRectangle2D fill = new RoundRectangle2D.Double(tr.x, ty, fillWidth, TRACK_HEIGHT, 6, 6);
                 g2.setPaint(new GradientPaint(
                         tr.x, ty, Theme.SLIDER_TRACK_FILL,
-                        tr.x, ty + TRACK_HEIGHT, Theme.SLIDER_TRACK_FILL.darker()
+                        tr.x, ty + TRACK_HEIGHT, Theme.SLIDER_TRACK_FILL_DARK
                 ));
                 g2.fill(fill);
             }
@@ -84,7 +84,7 @@ public class SkinSlider extends JSlider {
             int y = tr.y;
 
             // Soft drop shadow
-            g2.setColor(new Color(0, 0, 0, 90));
+            g2.setColor(Theme.SLIDER_THUMB_SHADOW);
             g2.fillOval(x, y + 1, THUMB_SIZE, THUMB_SIZE);
 
             // Metallic silver-blue thumb gradient
@@ -97,8 +97,8 @@ public class SkinSlider extends JSlider {
 
             // Specular gloss arc
             GradientPaint gloss = new GradientPaint(
-                    x, y, new Color(255, 255, 255, 220),
-                    x, y + THUMB_SIZE / 2.0f, new Color(255, 255, 255, 20)
+                    x, y, Theme.SLIDER_THUMB_GLOSS_TOP,
+                    x, y + THUMB_SIZE / 2.0f, Theme.SLIDER_THUMB_GLOSS_BOTTOM
             );
             g2.setPaint(gloss);
             g2.fill(new Ellipse2D.Double(x + 2, y + 1, THUMB_SIZE - 4, (THUMB_SIZE / 2.0) - 1));

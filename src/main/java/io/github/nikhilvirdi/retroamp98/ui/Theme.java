@@ -57,6 +57,12 @@ public final class Theme {
     public static final Color BTN_ICON_NORMAL = Color.WHITE;
     public static final Color BTN_ICON_SHADOW = new Color(0x18, 0x30, 0x4C);       // #18304C
     public static final Color BTN_TEXT_INACTIVE = new Color(0x18, 0x2E, 0x46);     // Dark navy text for inactive pills
+    public static final Color BTN_SHADOW_RING = new Color(0x15, 0x24, 0x35, 180);
+    public static final Color BTN_GLOSS_TOP = new Color(255, 255, 255, 200);
+    public static final Color BTN_GLOSS_BOTTOM = new Color(255, 255, 255, 10);
+    public static final Color BTN_PILL_GLOSS_TOP = new Color(255, 255, 255, 160);
+    public static final Color BTN_PILL_ACTIVE_GLOSS_TOP = new Color(255, 255, 255, 190);
+    public static final Color BTN_PILL_GLOSS_BOTTOM = new Color(255, 255, 255, 15);
 
     // --- Active Highlighted State for Toggle Buttons (Rpt, Shuf, PL) ---
     public static final Color BTN_ACTIVE_BORDER = new Color(0x0B, 0x42, 0x76);     // #0B4276
@@ -75,6 +81,13 @@ public final class Theme {
     public static final Color SLIDER_THUMB_MID = new Color(0xB2, 0xCE, 0xEA);      // #B2CEEA
     public static final Color SLIDER_THUMB_BOTTOM = new Color(0x60, 0x88, 0xB6);   // #6088B6
     public static final Color SLIDER_THUMB_BORDER = new Color(0x32, 0x4E, 0x70);   // #324E70
+    public static final Color SLIDER_THUMB_SHADOW = new Color(0, 0, 0, 90);
+    public static final Color SLIDER_THUMB_GLOSS_TOP = new Color(255, 255, 255, 220);
+    public static final Color SLIDER_THUMB_GLOSS_BOTTOM = new Color(255, 255, 255, 20);
+
+    // LED Highlight/Glow
+    public static final Color STATUS_LED_GLOW = new Color(0, 230, 77, 70);
+    public static final Color STATUS_LED_HIGHLIGHT = new Color(255, 255, 255, 140);
 
     // --- Playlist Panel ---
     public static final Color PLAYLIST_BG = new Color(0x13, 0x1E, 0x2B);           // #131E2B
@@ -83,7 +96,13 @@ public final class Theme {
     public static final Color PLAYLIST_TEXT = new Color(0xD8, 0xE6, 0xF4);         // #D8E6F4
     public static final Color PLAYLIST_TEXT_DIM = new Color(0x8A, 0xA2, 0xBC);     // #8AA2BC
     public static final Color PLAYLIST_SELECTION_BG = new Color(0x2A, 0x5E, 0x98); // #2A5E98
+    public static final Color PLAYLIST_SELECTION_TEXT = Color.WHITE;
     public static final Color PLAYLIST_ACTIVE_TEXT = new Color(0x50, 0xD2, 0xFF);   // Glowing cyan #50D2FF
+    public static final Color STATUS_TEXT_PRIMARY = new Color(0xD8, 0xE6, 0xF4);   // #D8E6F4
+
+    // Button icon/text hover
+    public static final Color BTN_ICON_HOVER = Color.WHITE;
+    public static final Color BTN_TEXT_HOVER = Color.WHITE;
 
     // --- Resize Grip ---
     public static final Color GRIP_DOT_LIGHT = new Color(0xFF, 0xFF, 0xFF, 220);
