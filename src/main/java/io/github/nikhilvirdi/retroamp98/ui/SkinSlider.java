@@ -2,21 +2,25 @@ package io.github.nikhilvirdi.retroamp98.ui;
 
 import javax.swing.JSlider;
 import javax.swing.plaf.basic.BasicSliderUI;
+import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.GradientPaint;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
-import java.awt.geom.Ellipse2D;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
 
 /**
- * Windows Media Player 9 Series styled slider.
- * Supports both horizontal (seek/volume) and vertical (equalizer bands) layouts.
- * Renders a slim recessed metallic track with cyan fill and a glossy rounded silver-blue thumb.
+ * Custom dark slider for RetroAmp98 progress and volume controls.
+ * Features a slim 3px track in Theme.PROGRESS_TRACK, active fill,
+ * and a white circular thumb shown exclusively on hover or dragging.
  */
 public class SkinSlider extends JSlider {
+
+    private boolean isHovered = false;
+    private Color fillColor = Theme.ACCENT;
 
     public SkinSlider(int min, int max, int value) {
         this(JSlider.HORIZONTAL, min, max, value);
@@ -27,12 +31,36 @@ public class SkinSlider extends JSlider {
         setOpaque(false);
         setFocusable(false);
         setUI(new SkinSliderUI(this));
+
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                isHovered = true;
+                repaint();
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                isHovered = false;
+                repaint();
+            }
+        });
+    }
+
+    public void setFillColor(Color fillColor) {
+        this.fillColor = fillColor;
+        repaint();
+    }
+
+    public Color getFillColor() {
+        return fillColor;
+    }
+
+    public boolean isHovered() {
+        return isHovered;
     }
 
     private static class SkinSliderUI extends BasicSliderUI {
-
-        private static final int TRACK_HEIGHT = 6;
-        private static final int THUMB_SIZE = 14;
 
         public SkinSliderUI(JSlider b) {
             super(b);
@@ -40,7 +68,7 @@ public class SkinSlider extends JSlider {
 
         @Override
         protected Dimension getThumbSize() {
-            return new Dimension(THUMB_SIZE, THUMB_SIZE);
+            return new Dimension(Theme.THUMB_SIZE, Theme.THUMB_SIZE);
         }
 
         @Override
@@ -54,49 +82,27 @@ public class SkinSlider extends JSlider {
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
             Rectangle tr = trackRect;
+            int ty = tr.y + (tr.height - Theme.PROGRESS_TRACK_HEIGHT) / Theme.TWO;
 
-            if (slider.getOrientation() == JSlider.VERTICAL) {
-                int tx = tr.x + (tr.width - TRACK_HEIGHT) / 2;
+            // Recessed dark track line
+            RoundRectangle2D groove = new RoundRectangle2D.Double(
+                    tr.x, ty, tr.width, Theme.PROGRESS_TRACK_HEIGHT,
+                    Theme.PROGRESS_TRACK_HEIGHT, Theme.PROGRESS_TRACK_HEIGHT
+            );
+            g2.setColor(Theme.PROGRESS_TRACK);
+            g2.fill(groove);
 
-                // Recessed silver background groove
-                RoundRectangle2D groove = new RoundRectangle2D.Double(tx, tr.y, TRACK_HEIGHT, tr.height, 6, 6);
-                g2.setColor(Theme.SLIDER_TRACK_BG);
-                g2.fill(groove);
-                g2.setColor(Theme.SLIDER_TRACK_BORDER);
-                g2.draw(groove);
-
-                // Active fill from bottom to thumb
-                int thumbY = thumbRect.y + thumbRect.height / 2;
-                int fillHeight = Math.max(0, (tr.y + tr.height) - thumbY);
-                if (fillHeight > 0) {
-                    RoundRectangle2D fill = new RoundRectangle2D.Double(tx, thumbY, TRACK_HEIGHT, fillHeight, 6, 6);
-                    g2.setPaint(new GradientPaint(
-                            tx, thumbY, Theme.SLIDER_TRACK_FILL,
-                            tx + TRACK_HEIGHT, thumbY + fillHeight, Theme.SLIDER_TRACK_FILL_DARK
-                    ));
-                    g2.fill(fill);
-                }
-            } else {
-                int ty = tr.y + (tr.height - TRACK_HEIGHT) / 2;
-
-                // Recessed silver background groove
-                RoundRectangle2D groove = new RoundRectangle2D.Double(tr.x, ty, tr.width, TRACK_HEIGHT, 6, 6);
-                g2.setColor(Theme.SLIDER_TRACK_BG);
-                g2.fill(groove);
-                g2.setColor(Theme.SLIDER_TRACK_BORDER);
-                g2.draw(groove);
-
-                // Active elapsed fill in rich blue from track start to thumb center
-                int thumbX = thumbRect.x + thumbRect.width / 2;
-                int fillWidth = Math.max(0, thumbX - tr.x);
-                if (fillWidth > 0) {
-                    RoundRectangle2D fill = new RoundRectangle2D.Double(tr.x, ty, fillWidth, TRACK_HEIGHT, 6, 6);
-                    g2.setPaint(new GradientPaint(
-                            tr.x, ty, Theme.SLIDER_TRACK_FILL,
-                            tr.x, ty + TRACK_HEIGHT, Theme.SLIDER_TRACK_FILL_DARK
-                    ));
-                    g2.fill(fill);
-                }
+            // Active elapsed / volume fill
+            int thumbX = thumbRect.x + thumbRect.width / Theme.TWO;
+            int fillWidth = Math.max(Theme.ZERO, thumbX - tr.x);
+            if (fillWidth > Theme.ZERO) {
+                Color fill = (slider instanceof SkinSlider ss) ? ss.getFillColor() : Theme.ACCENT;
+                RoundRectangle2D activeFill = new RoundRectangle2D.Double(
+                        tr.x, ty, fillWidth, Theme.PROGRESS_TRACK_HEIGHT,
+                        Theme.PROGRESS_TRACK_HEIGHT, Theme.PROGRESS_TRACK_HEIGHT
+                );
+                g2.setColor(fill);
+                g2.fill(activeFill);
             }
 
             g2.dispose();
@@ -104,38 +110,28 @@ public class SkinSlider extends JSlider {
 
         @Override
         public void paintThumb(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            boolean hovered = (slider instanceof SkinSlider ss) && ss.isHovered();
+            boolean adjusting = slider.getValueIsAdjusting();
 
-            Rectangle tr = thumbRect;
-            int x = tr.x;
-            int y = tr.y;
+            // Only display thumb during hover or active dragging
+            if (hovered || adjusting) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-            // Soft drop shadow
-            g2.setColor(Theme.SLIDER_THUMB_SHADOW);
-            g2.fillOval(x, y + 1, THUMB_SIZE, THUMB_SIZE);
+                Rectangle tr = thumbRect;
+                int x = tr.x + (tr.width - Theme.THUMB_SIZE) / Theme.TWO;
+                int y = tr.y + (tr.height - Theme.THUMB_SIZE) / Theme.TWO;
 
-            // Metallic silver-blue thumb gradient
-            GradientPaint thumbGrad = new GradientPaint(
-                    x, y, Theme.SLIDER_THUMB_TOP,
-                    x, y + THUMB_SIZE, Theme.SLIDER_THUMB_BOTTOM
-            );
-            g2.setPaint(thumbGrad);
-            g2.fillOval(x, y, THUMB_SIZE, THUMB_SIZE);
+                // Subtle drop shadow
+                g2.setColor(Theme.THUMB_SHADOW);
+                g2.fillOval(x, y + Theme.ONE, Theme.THUMB_SIZE, Theme.THUMB_SIZE);
 
-            // Specular gloss arc
-            GradientPaint gloss = new GradientPaint(
-                    x, y, Theme.SLIDER_THUMB_GLOSS_TOP,
-                    x, y + THUMB_SIZE / 2.0f, Theme.SLIDER_THUMB_GLOSS_BOTTOM
-            );
-            g2.setPaint(gloss);
-            g2.fill(new Ellipse2D.Double(x + 2, y + 1, THUMB_SIZE - 4, (THUMB_SIZE / 2.0) - 1));
+                // Round white thumb
+                g2.setColor(Theme.THUMB_COLOR);
+                g2.fillOval(x, y, Theme.THUMB_SIZE, Theme.THUMB_SIZE);
 
-            // Outer border ring
-            g2.setColor(Theme.SLIDER_THUMB_BORDER);
-            g2.drawOval(x, y, THUMB_SIZE, THUMB_SIZE);
-
-            g2.dispose();
+                g2.dispose();
+            }
         }
     }
 }

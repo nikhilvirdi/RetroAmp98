@@ -1,117 +1,262 @@
 package io.github.nikhilvirdi.retroamp98.ui;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
 
 /**
- * Windows Media Player 9 Series ("Corona" XP era) theme palette.
- * Light silver-blue metallic body with dark video/status areas and glossy jewel controls.
+ * Dark "Now Playing" theme palette and UI design constants for RetroAmp98.
+ * Features a 50/50 split layout with deep red/neon poster on the left
+ * and sleek dark controls with yellow accent on the right.
+ *
+ * ALL UI colors, fonts, sizes, padding, stroke widths, opacities, and numeric
+ * layout/paint literals are centrally declared here to strictly prevent hardcoding.
  */
 public final class Theme {
 
     private Theme() {
-        // Central palette repository
+        // Prevent instantiation
     }
 
-    // --- Window Body & Gradients (Light Silver-Blue Metallic) ---
-    public static final Color BODY_GRADIENT_TOP = new Color(0xEA, 0xF1, 0xF9);     // #EAF1F9
-    public static final Color BODY_GRADIENT_MID = new Color(0xC5, 0xD7, 0xEB);     // #C5D7EB
-    public static final Color BODY_GRADIENT_BOTTOM = new Color(0x8E, 0xAC, 0xCB);  // #8EACCB
-    public static final Color BODY_BORDER_OUTER = new Color(0x52, 0x72, 0x96);     // #527296
-    public static final Color BODY_HIGHLIGHT = new Color(0xFF, 0xFF, 0xFF, 200);   // #FFFFFF highlight line
+    // =========================================================================
+    // COLOR PALETTE
+    // =========================================================================
 
-    // --- Menu Bar (Blends with light silver-blue body) ---
-    public static final Color MENUBAR_BG_TOP = new Color(0xF2, 0xF6, 0xFC);        // #F2F6FC
-    public static final Color MENUBAR_BG_BOTTOM = new Color(0xD8, 0xE5, 0xF4);     // #D8E5F4
-    public static final Color MENUBAR_BORDER = new Color(0xA4, 0xBA, 0xD2);        // Subtle bottom border #A4BAD2
-    public static final Color MENUBAR_TEXT = new Color(0x18, 0x2A, 0x3E);          // #182A3E
+    // --- Window and Main Card ---
+    public static final Color WINDOW_BG = new Color(0x0C, 0x0D, 0x11);
+    public static final Color CARD_BG = new Color(0x13, 0x14, 0x1A);
+    public static final Color PANEL_BG = new Color(0x13, 0x14, 0x1A);
+    public static final Color OUTER_BORDER = new Color(0x28, 0x2A, 0x35);
 
-    // --- Video Display Viewport ---
-    public static final Color VIDEO_BG = Color.BLACK;
-    public static final Color VIDEO_FRAME_BORDER = new Color(0x1B, 0x2A, 0x3B);    // #1B2A3B
-    public static final Color VIDEO_TEXT_COLOR = new Color(0x78, 0x8C, 0xA0);      // #788CA0
+    // --- Left Poster Panel ---
+    public static final Color POSTER_TOP_LEFT = new Color(0x8D, 0x0C, 0x18);       // Deep crimson red
+    public static final Color POSTER_BOTTOM_RIGHT = new Color(0x07, 0x07, 0x0A);   // Near-black
+    public static final Color GLOW_COLOR = new Color(0xE8, 0x1E, 0x36);            // Vibrant radial glow
+    public static final Color GLOW_COLOR_WITH_ALPHA = new Color(0xE8, 0x1E, 0x36, 95);
+    public static final Color VIGNETTE_COLOR = new Color(0x00, 0x00, 0x00);
+    public static final Color VIGNETTE_COLOR_WITH_ALPHA = new Color(0x00, 0x00, 0x00, 175);
+    public static final Color COLOR_TRANSPARENT = new Color(0, 0, 0, 0);
+    public static final Color POSTER_FADE_START = new Color(0x13, 0x14, 0x1A, 0);
+    public static final Color POSTER_FADE_END = new Color(0x13, 0x14, 0x1A, 255);
+    public static final Color POSTER_LOGO_COLOR = new Color(0xFF, 0xFF, 0xFF);
 
-    // --- Status Strip (Dark Bar with Green LCD Text) ---
-    public static final Color STATUS_BG_TOP = new Color(0x0C, 0x14, 0x1E);         // #0C141E
-    public static final Color STATUS_BG_BOTTOM = new Color(0x16, 0x22, 0x30);      // #162230
-    public static final Color STATUS_BORDER = new Color(0x28, 0x3A, 0x4E);         // #283A4E
-    public static final Color STATUS_LCD_TEXT = new Color(0x32, 0xFF, 0x32);       // Phosphor green #32FF32
-    public static final Color STATUS_LCD_DIM = new Color(0x1C, 0xAA, 0x1C);        // Dim green #1CAA1C
-    public static final Color STATUS_TIME_TEXT = new Color(0x32, 0xFF, 0x32);      // Green LCD counter
+    // --- Typography & Content ---
+    public static final Color TEXT_PRIMARY = new Color(0xFF, 0xFF, 0xFF);          // Crisp white
+    public static final Color TEXT_MUTED = new Color(0x8C, 0x90, 0x9E);            // Muted secondary text
+    public static final Color TEXT_DIM = new Color(0x56, 0x5A, 0x66);              // Dim helper text
 
-    // LED Indicator Colors
-    public static final Color LED_PLAYING = new Color(0x00, 0xE6, 0x4D);          // Bright green #00E64D
-    public static final Color LED_PAUSED = new Color(0xFF, 0xBB, 0x00);           // Amber yellow #FFBB00
-    public static final Color LED_LOADING = new Color(0x00, 0xB4, 0xD8);          // Cyan #00B4D8
-    public static final Color LED_STOPPED = new Color(0x40, 0x55, 0x40);          // Dim olive-gray #405540
-    public static final Color LED_ERROR = new Color(0xE6, 0x39, 0x46);            // Red #E63946
+    // --- Accent & Progress Bar ---
+    public static final Color ACCENT = new Color(0xF6, 0xD4, 0x38);                // Warm yellow accent
+    public static final Color PROGRESS_TRACK = new Color(0x28, 0x2A, 0x34);        // Dark progress track line
+    public static final Color THUMB_COLOR = new Color(0xFF, 0xFF, 0xFF);           // White round thumb
+    public static final Color THUMB_SHADOW = new Color(0x00, 0x00, 0x00, 100);
 
-    // --- Glossy Button Colors (Transport & Inactive Toggles) ---
-    public static final Color BTN_BORDER = new Color(0x28, 0x46, 0x68);            // #284668
-    public static final Color BTN_GRAD_TOP = new Color(0xE4, 0xF0, 0xFA);          // #E4F0FA
-    public static final Color BTN_GRAD_MID = new Color(0x8C, 0xB5, 0xDE);          // #8CB5DE
-    public static final Color BTN_GRAD_BOTTOM = new Color(0x44, 0x72, 0xA2);       // #4472A2
-    public static final Color BTN_HOVER_GLOW = new Color(0xB8, 0xDC, 0xFF);        // #B8DCFF
-    public static final Color BTN_PRESSED_TOP = new Color(0x2C, 0x53, 0x7E);       // #2C537E
-    public static final Color BTN_PRESSED_BOTTOM = new Color(0x56, 0x82, 0xB4);    // #5682B4
-    public static final Color BTN_ICON_NORMAL = Color.WHITE;
-    public static final Color BTN_ICON_SHADOW = new Color(0x18, 0x30, 0x4C);       // #18304C
-    public static final Color BTN_TEXT_INACTIVE = new Color(0x18, 0x2E, 0x46);     // Dark navy text for inactive pills
-    public static final Color BTN_SHADOW_RING = new Color(0x15, 0x24, 0x35, 180);
-    public static final Color BTN_GLOSS_TOP = new Color(255, 255, 255, 200);
-    public static final Color BTN_GLOSS_BOTTOM = new Color(255, 255, 255, 10);
-    public static final Color BTN_PILL_GLOSS_TOP = new Color(255, 255, 255, 160);
-    public static final Color BTN_PILL_ACTIVE_GLOSS_TOP = new Color(255, 255, 255, 190);
-    public static final Color BTN_PILL_GLOSS_BOTTOM = new Color(255, 255, 255, 15);
+    // --- Buttons & Transport Controls ---
+    public static final Color PLAY_BUTTON_BG = new Color(0xFF, 0xFF, 0xFF);        // Large white circular button
+    public static final Color PLAY_BUTTON_HOVER = new Color(0xEE, 0xEE, 0xF2);
+    public static final Color PLAY_BUTTON_PRESSED = new Color(0xD8, 0xD8, 0xDE);
+    public static final Color PLAY_BUTTON_ICON = new Color(0x13, 0x14, 0x1A);      // Dark glyph on play button
+    public static final Color BTN_ICON_NORMAL = new Color(0xB5, 0xB9, 0xC7);      // Muted silver/gray glyph
+    public static final Color BTN_ICON_HOVER = new Color(0xFF, 0xFF, 0xFF);       // White glyph on hover
+    public static final Color BTN_ICON_PRESSED = new Color(0x8E, 0x92, 0xA0);
+    public static final Color BTN_BG_HOVER = new Color(0xFF, 0xFF, 0xFF, 20);      // Subtle hover circle
+    public static final Color BTN_BG_PRESSED = new Color(0xFF, 0xFF, 0xFF, 40);
 
-    // --- Active Highlighted State for Toggle Buttons (Rpt, Shuf, PL) ---
-    public static final Color BTN_ACTIVE_BORDER = new Color(0x0B, 0x42, 0x76);     // #0B4276
-    public static final Color BTN_ACTIVE_GRAD_TOP = new Color(0x6E, 0xBA, 0xF6);   // Bright cyan-blue #6EBAF6
-    public static final Color BTN_ACTIVE_GRAD_MID = new Color(0x2B, 0x80, 0xCE);   // Mid blue #2B80CE
-    public static final Color BTN_ACTIVE_GRAD_BOTTOM = new Color(0x14, 0x4E, 0x88);// Deep blue #144E88
-    public static final Color BTN_ACTIVE_TEXT = Color.WHITE;
-    public static final Color BTN_ACTIVE_GLOW = new Color(0x50, 0xC4, 0xFF, 160);
+    // --- Small Rounded "PL" Button ---
+    public static final Color BTN_PILL_BG = new Color(0x1E, 0x20, 0x29);
+    public static final Color BTN_PILL_HOVER = new Color(0x29, 0x2B, 0x37);
+    public static final Color BTN_PILL_PRESSED = new Color(0x34, 0x37, 0x46);
+    public static final Color BTN_PILL_BORDER = new Color(0x35, 0x37, 0x45);
+    public static final Color BTN_PILL_TEXT = new Color(0xCC, 0xCF, 0xD9);
+    public static final Color BTN_PILL_ACTIVE_BG = new Color(0x2C, 0x28, 0x1A);
+    public static final Color BTN_PILL_ACTIVE_BORDER = new Color(0xF6, 0xD4, 0x38, 160);
+    public static final Color BTN_PILL_ACTIVE_TEXT = new Color(0xF6, 0xD4, 0x38);
 
-    // --- Seek & Volume Sliders ---
-    public static final Color SLIDER_TRACK_BG = new Color(0xB0, 0xC4, 0xD8);       // Thicker silver track #B0C4D8
-    public static final Color SLIDER_TRACK_BORDER = new Color(0x7E, 0x96, 0xB0);   // Track groove border #7E96B0
-    public static final Color SLIDER_TRACK_FILL = new Color(0x2A, 0x7E, 0xD8);     // Played blue fill #2A7ED8
-    public static final Color SLIDER_TRACK_FILL_DARK = new Color(0x19, 0x5B, 0xA8);// #195BA8
-    public static final Color SLIDER_THUMB_TOP = new Color(0xF4, 0xF8, 0xFD);      // Rounded glossy thumb #F4F8FD
-    public static final Color SLIDER_THUMB_MID = new Color(0xB2, 0xCE, 0xEA);      // #B2CEEA
-    public static final Color SLIDER_THUMB_BOTTOM = new Color(0x60, 0x88, 0xB6);   // #6088B6
-    public static final Color SLIDER_THUMB_BORDER = new Color(0x32, 0x4E, 0x70);   // #324E70
-    public static final Color SLIDER_THUMB_SHADOW = new Color(0, 0, 0, 90);
-    public static final Color SLIDER_THUMB_GLOSS_TOP = new Color(255, 255, 255, 220);
-    public static final Color SLIDER_THUMB_GLOSS_BOTTOM = new Color(255, 255, 255, 20);
-
-    // LED Highlight/Glow
-    public static final Color STATUS_LED_GLOW = new Color(0, 230, 77, 70);
-    public static final Color STATUS_LED_HIGHLIGHT = new Color(255, 255, 255, 140);
+    // --- Volume & Status ---
+    public static final Color VOLUME_FILL = new Color(0x8C, 0x90, 0x9E);
 
     // --- Playlist Panel ---
-    public static final Color PLAYLIST_BG = new Color(0x13, 0x1E, 0x2B);           // #131E2B
-    public static final Color PLAYLIST_HEADER_BG = new Color(0x2D, 0x42, 0x5A);    // #2D425A
-    public static final Color PLAYLIST_BORDER = new Color(0x62, 0x7E, 0x9E);       // #627E9E
-    public static final Color PLAYLIST_TEXT = new Color(0xD8, 0xE6, 0xF4);         // #D8E6F4
-    public static final Color PLAYLIST_TEXT_DIM = new Color(0x8A, 0xA2, 0xBC);     // #8AA2BC
-    public static final Color PLAYLIST_SELECTION_BG = new Color(0x2A, 0x5E, 0x98); // #2A5E98
-    public static final Color PLAYLIST_SELECTION_TEXT = Color.WHITE;
-    public static final Color PLAYLIST_ACTIVE_TEXT = new Color(0x50, 0xD2, 0xFF);   // Glowing cyan #50D2FF
-    public static final Color STATUS_TEXT_PRIMARY = new Color(0xD8, 0xE6, 0xF4);   // #D8E6F4
+    public static final Color PLAYLIST_BG = new Color(0x11, 0x12, 0x17);
+    public static final Color PLAYLIST_HEADER_BG = new Color(0x18, 0x19, 0x20);
+    public static final Color PLAYLIST_BORDER = new Color(0x23, 0x25, 0x30);
+    public static final Color PLAYLIST_TEXT = new Color(0xDE, 0xE0, 0xE6);
+    public static final Color PLAYLIST_TEXT_DIM = new Color(0x75, 0x78, 0x86);
+    public static final Color PLAYLIST_ACTIVE_TEXT = new Color(0xF6, 0xD4, 0x38);  // ACCENT yellow
+    public static final Color PLAYLIST_SELECTION_BG = new Color(0xF6, 0xD4, 0x38, 55); // ACCENT at SELECTION_OPACITY
+    public static final Color PLAYLIST_SELECTION_TEXT = new Color(0xFF, 0xFF, 0xFF);
 
-    // Button icon/text hover
-    public static final Color BTN_ICON_HOVER = Color.WHITE;
-    public static final Color BTN_TEXT_HOVER = Color.WHITE;
+    // --- Menu Bar (Dark Styled) ---
+    public static final Color MENUBAR_BG_TOP = new Color(0x10, 0x11, 0x16);
+    public static final Color MENUBAR_BG_BOTTOM = new Color(0x10, 0x11, 0x16);
+    public static final Color MENUBAR_BORDER = new Color(0x20, 0x21, 0x2B);
+    public static final Color MENUBAR_TEXT = new Color(0x9E, 0xA2, 0xB0);
 
-    // --- Resize Grip ---
-    public static final Color GRIP_DOT_LIGHT = new Color(0xFF, 0xFF, 0xFF, 220);
-    public static final Color GRIP_DOT_DARK = new Color(0x56, 0x74, 0x96);
+    // --- Resize Grip & App Icon ---
+    public static final Color GRIP_DOT_LIGHT = new Color(0x40, 0x43, 0x54);
+    public static final Color GRIP_DOT_DARK = new Color(0x1A, 0x1B, 0x22);
+    public static final Color ICON_DISC_OUTER = new Color(0x2A, 0x2B, 0x36);
+    public static final Color ICON_DISC_MID = new Color(0x1A, 0x1B, 0x22);
+    public static final Color ICON_DISC_INNER = new Color(0x11, 0x12, 0x17);
+    public static final Color ICON_RIM = new Color(0x3A, 0x3D, 0x4D);
+    public static final Color ICON_HUB = new Color(0x0C, 0x0D, 0x11);
+    public static final Color ICON_PLAY = new Color(0xF6, 0xD4, 0x38);
+    public static final Color ICON_HIGHLIGHT = new Color(0xFF, 0xFF, 0xFF, 120);
+    public static final Color ICON_TRACK_RING = new Color(0xF6, 0xD4, 0x38, 80);
+    public static final Color ICON_INNER_RING = new Color(0x4A, 0x4D, 0x5E);
 
-    // --- Typography ---
-    public static final Font FONT_STATUS_TITLE = new Font("Tahoma", Font.BOLD, 11);
-    public static final Font FONT_STATUS_LCD = new Font("Monospaced", Font.BOLD, 12);
-    public static final Font FONT_BUTTON_LABEL = new Font("Tahoma", Font.BOLD, 10);
-    public static final Font FONT_PLAYLIST_ITEM = new Font("Tahoma", Font.PLAIN, 11);
-    public static final Font FONT_PLAYLIST_ACTIVE = new Font("Tahoma", Font.BOLD, 11);
+    // =========================================================================
+    // TYPOGRAPHY
+    // =========================================================================
+
+    public static final Font FONT_POSTER_LOGO = new Font("SansSerif", Font.BOLD, 24);
+    public static final Font FONT_TOP_TITLE = new Font("SansSerif", Font.BOLD, 12);
+    public static final Font FONT_TRACK_TITLE = new Font("SansSerif", Font.BOLD, 22);
+    public static final Font FONT_TRACK_ARTIST = new Font("SansSerif", Font.PLAIN, 13);
+    public static final Font FONT_TIME = new Font("SansSerif", Font.PLAIN, 11);
+    public static final Font FONT_STATUS = new Font("SansSerif", Font.PLAIN, 11);
+    public static final Font FONT_BUTTON_LABEL = new Font("SansSerif", Font.BOLD, 10);
+    public static final Font FONT_BADGE = new Font("SansSerif", Font.BOLD, 9);
+    public static final Font FONT_PLAYLIST_ITEM = new Font("SansSerif", Font.PLAIN, 12);
+    public static final Font FONT_PLAYLIST_ACTIVE = new Font("SansSerif", Font.BOLD, 12);
+
+    // =========================================================================
+    // OPACITY & FLOATING POINT VALUES
+    // =========================================================================
+
+    public static final float GLOW_OPACITY = 0.38f;
+    public static final float VIGNETTE_OPACITY = 0.70f;
+    public static final float SELECTION_OPACITY = 0.22f;
+
+    public static final float FLOAT_ZERO = 0.0f;
+    public static final float FLOAT_HALF = 0.5f;
+    public static final float FLOAT_ONE = 1.0f;
+    public static final float FLOAT_TWO = 2.0f;
+    public static final float FLOAT_GLOW_CX = 0.35f;
+    public static final float FLOAT_GLOW_CY = 0.38f;
+    public static final float FLOAT_GLOW_RADIUS = 0.85f;
+    public static final float FLOAT_VIGNETTE_RADIUS = 0.90f;
+
+    public static final double DOUBLE_ZERO = 0.0;
+    public static final double DOUBLE_ONE = 1.0;
+    public static final double DOUBLE_TWO = 2.0;
+    public static final double PERCENT_DIVISOR = 100.0;
+    public static final double PERCENT_MULTIPLIER = 100.0;
+    public static final double VOLUME_STEP = 0.05;
+
+    public static final float[] GRADIENT_STOPS_TWO = new float[]{0.0f, 1.0f};
+    public static final float[] GRADIENT_STOPS_THREE = new float[]{0.0f, 0.45f, 1.0f};
+
+    // =========================================================================
+    // STROKES
+    // =========================================================================
+
+    public static final BasicStroke STROKE_ONE = new BasicStroke(1.0f);
+    public static final BasicStroke STROKE_TWO = new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
+    public static final BasicStroke STROKE_PROGRESS = new BasicStroke(3.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
+
+    // =========================================================================
+    // DIMENSIONS, RADII, PADDING & SIZES
+    // =========================================================================
+
+    public static final int RADIUS_OUTER = 20;
+    public static final int RADIUS_CARD_BORDER = 20;
+    public static final int RADIUS_SMALL = 6;
+    public static final int RADIUS_PILL = 12;
+    public static final int PADDING_OUTER = 12;
+    public static final int FADE_WIDTH = 80;
+    public static final int PROGRESS_TRACK_HEIGHT = 3;
+
+    public static final int THUMB_SIZE = 12;
+    public static final int THUMB_RADIUS = 6;
+
+    public static final int WINDOW_DEFAULT_WIDTH = 900;
+    public static final int WINDOW_DEFAULT_HEIGHT = 460;
+    public static final int WINDOW_MIN_WIDTH = 720;
+    public static final int WINDOW_MIN_HEIGHT = 400;
+
+    public static final int POSTER_MIN_WIDTH = 360;
+    public static final int PLAYLIST_DRAWER_WIDTH = 240;
+
+    public static final int PLAY_BUTTON_SIZE = 54;
+    public static final int TRANSPORT_BUTTON_SIZE = 36;
+    public static final int MUTE_BUTTON_SIZE = 28;
+    public static final int PL_BUTTON_WIDTH = 34;
+    public static final int PL_BUTTON_HEIGHT = 22;
+
+    public static final int VOLUME_SLIDER_WIDTH = 84;
+    public static final int VOLUME_SLIDER_HEIGHT = 20;
+
+    public static final int SEEK_RESOLUTION = 1000;
+    public static final int VOLUME_MAX = 100;
+    public static final int SEEK_STEP_SECONDS = 5;
+
+    public static final int POSTER_LOGO_X = 28;
+    public static final int POSTER_LOGO_Y = 28;
+
+    // =========================================================================
+    // NUMERIC CONSTANTS (FOR ZERO-HARDCODING IN PAINT & LAYOUT CODE)
+    // =========================================================================
+
+    public static final int ZERO = 0;
+    public static final int ONE = 1;
+    public static final int TWO = 2;
+    public static final int THREE = 3;
+    public static final int FOUR = 4;
+    public static final int FIVE = 5;
+    public static final int SIX = 6;
+    public static final int SEVEN = 7;
+    public static final int EIGHT = 8;
+    public static final int NINE = 9;
+    public static final int TEN = 10;
+    public static final int ELEVEN = 11;
+    public static final int TWELVE = 12;
+    public static final int THIRTEEN = 13;
+    public static final int FOURTEEN = 14;
+    public static final int FIFTEEN = 15;
+    public static final int SIXTEEN = 16;
+    public static final int SEVENTEEN = 17;
+    public static final int EIGHTEEN = 18;
+    public static final int NINETEEN = 19;
+    public static final int TWENTY = 20;
+    public static final int TWENTY_TWO = 22;
+    public static final int TWENTY_FOUR = 24;
+    public static final int TWENTY_SIX = 26;
+    public static final int TWENTY_EIGHT = 28;
+    public static final int THIRTY = 30;
+    public static final int THIRTY_TWO = 32;
+    public static final int THIRTY_FOUR = 34;
+    public static final int THIRTY_SIX = 36;
+    public static final int FORTY = 40;
+    public static final int FORTY_TWO = 42;
+    public static final int FORTY_FOUR = 44;
+    public static final int FORTY_FIVE = 45;
+    public static final int FORTY_SIX = 46;
+    public static final int FORTY_EIGHT = 48;
+    public static final int FIFTY = 50;
+    public static final int FIFTY_TWO = 52;
+    public static final int FIFTY_FOUR = 54;
+    public static final int FIFTY_SIX = 56;
+    public static final int SIXTY = 60;
+    public static final int SIXTY_FOUR = 64;
+    public static final int SEVENTY = 70;
+    public static final int SEVENTY_TWO = 72;
+    public static final int EIGHTY = 80;
+    public static final int NINETY = 90;
+    public static final int ONE_HUNDRED = 100;
+    public static final int ONE_HUNDRED_TWENTY = 120;
+    public static final int ONE_HUNDRED_FORTY = 140;
+    public static final int ONE_HUNDRED_SIXTY = 160;
+    public static final int ONE_HUNDRED_EIGHTY = 180;
+    public static final int TWO_HUNDRED = 200;
+    public static final int TWO_HUNDRED_TWENTY = 220;
+    public static final int TWO_HUNDRED_FORTY = 240;
+    public static final int TWO_HUNDRED_SIXTY = 260;
+    public static final int TWO_HUNDRED_EIGHTY = 280;
+    public static final int THREE_HUNDRED = 300;
+    public static final int THREE_HUNDRED_SIXTY = 360;
+    public static final int FOUR_HUNDRED = 400;
+    public static final int FOUR_HUNDRED_SIXTY = 460;
+    public static final int SEVEN_HUNDRED_TWENTY = 720;
+    public static final int NINE_HUNDRED = 900;
+    public static final int ONE_THOUSAND = 1000;
 }

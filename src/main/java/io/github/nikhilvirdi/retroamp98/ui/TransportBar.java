@@ -5,30 +5,34 @@ import io.github.nikhilvirdi.retroamp98.playlist.RepeatMode;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 
 /**
- * Windows Media Player 9 Series styled transport bar.
- * Features large glossy round Play/Pause, smaller round Stop/Prev/Next,
- * volume slider with mute, and mode toggles.
+ * Transport bar for RetroAmp98 right control panel.
+ * Contains:
+ * 1. Transport row: evenly spaced and vertically centered Shuffle, Previous,
+ *    large white circle Play/Pause with dark glyph, Next, Repeat (with "1" badge).
+ * 2. Slim bottom row: small icon-style Mute button on left, status text,
+ *    and volume slider on right matching progress bar style.
  */
 public class TransportBar extends JPanel implements ControllerListener {
 
     private final PlayerController controller;
 
+    private final RoundGlossButton shuffleButton;
     private final RoundGlossButton prevButton;
     private final RoundGlossButton playPauseButton;
-    private final RoundGlossButton stopButton;
     private final RoundGlossButton nextButton;
+    private final RoundGlossButton repeatButton;
 
     private final RoundGlossButton muteButton;
     private final SkinSlider volumeSlider;
-
-    private final RoundGlossButton repeatButton;
-    private final RoundGlossButton shuffleButton;
+    private final JLabel statusLabel;
     private final RoundGlossButton playlistButton;
 
     private java.util.function.Consumer<Boolean> playlistToggleListener;
@@ -36,46 +40,136 @@ public class TransportBar extends JPanel implements ControllerListener {
 
     public TransportBar(PlayerController controller) {
         this.controller = controller;
-        setLayout(new BorderLayout(4, 0));
+        setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setOpaque(false);
-        setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 6));
+        setBorder(BorderFactory.createEmptyBorder(Theme.SIX, Theme.ZERO, Theme.FOUR, Theme.ZERO));
 
-        // --- Left / Center Area: Transport buttons ---
-        JPanel controlsGroup = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 2));
-        controlsGroup.setOpaque(false);
+        // --- 1. Transport Row: Evenly spaced, vertically centered ---
+        JPanel transportRow = new JPanel();
+        transportRow.setLayout(new BoxLayout(transportRow, BoxLayout.X_AXIS));
+        transportRow.setOpaque(false);
+        transportRow.setBorder(BorderFactory.createEmptyBorder(Theme.FOUR, Theme.ZERO, Theme.FOUR, Theme.ZERO));
 
-        prevButton = new RoundGlossButton(RoundGlossButton.IconType.PREV, 30, "Previous Track");
-        playPauseButton = new RoundGlossButton(RoundGlossButton.IconType.PLAY, 42, "Play / Pause");
-        stopButton = new RoundGlossButton(RoundGlossButton.IconType.STOP, 30, "Stop");
-        nextButton = new RoundGlossButton(RoundGlossButton.IconType.NEXT, 30, "Next Track");
-
-        prevButton.addActionListener(e -> controller.previous());
-        playPauseButton.addActionListener(e -> controller.playPause());
-        stopButton.addActionListener(e -> controller.stop());
-        nextButton.addActionListener(e -> controller.next());
-
-        controlsGroup.add(prevButton);
-        controlsGroup.add(playPauseButton);
-        controlsGroup.add(stopButton);
-        controlsGroup.add(nextButton);
-
-        controlsGroup.add(Box.createHorizontalStrut(6));
-
-        // Mode toggles
-        repeatButton = new RoundGlossButton("Rpt: Off", 60, 22, "Repeat Mode (Off / All / One)");
-        repeatButton.setSelectedToggle(false);
-        repeatButton.addActionListener(e -> cycleRepeatMode());
-
-        shuffleButton = new RoundGlossButton("Shuf: Off", 60, 22, "Toggle Shuffle (On / Off)");
-        shuffleButton.setSelectedToggle(false);
+        shuffleButton = new RoundGlossButton(
+                RoundGlossButton.IconType.SHUFFLE,
+                Theme.TRANSPORT_BUTTON_SIZE,
+                "Toggle Shuffle (S)"
+        );
         shuffleButton.addActionListener(e -> {
             boolean nextVal = !shuffleButton.isSelectedToggle();
             shuffleButton.setSelectedToggle(nextVal);
-            shuffleButton.setText(nextVal ? "Shuf: On" : "Shuf: Off");
-            controller.setShuffle(nextVal);
+            if (this.controller != null) {
+                this.controller.setShuffle(nextVal);
+            }
         });
 
-        playlistButton = new RoundGlossButton("PL", 36, 22, "Toggle Playlist Panel");
+        prevButton = new RoundGlossButton(
+                RoundGlossButton.IconType.PREV,
+                Theme.TRANSPORT_BUTTON_SIZE,
+                "Previous Track (P)"
+        );
+        prevButton.addActionListener(e -> {
+            if (this.controller != null) {
+                this.controller.previous();
+            }
+        });
+
+        playPauseButton = new RoundGlossButton(
+                RoundGlossButton.IconType.PLAY_PAUSE,
+                Theme.PLAY_BUTTON_SIZE,
+                "Play / Pause (Space)"
+        );
+        playPauseButton.addActionListener(e -> {
+            if (this.controller != null) {
+                this.controller.playPause();
+            }
+        });
+
+        nextButton = new RoundGlossButton(
+                RoundGlossButton.IconType.NEXT,
+                Theme.TRANSPORT_BUTTON_SIZE,
+                "Next Track (N)"
+        );
+        nextButton.addActionListener(e -> {
+            if (this.controller != null) {
+                this.controller.next();
+            }
+        });
+
+        repeatButton = new RoundGlossButton(
+                RoundGlossButton.IconType.REPEAT,
+                Theme.TRANSPORT_BUTTON_SIZE,
+                "Repeat Mode (Off / All / One) (R)"
+        );
+        repeatButton.addActionListener(e -> cycleRepeatMode());
+
+        transportRow.add(Box.createHorizontalGlue());
+        transportRow.add(shuffleButton);
+        transportRow.add(Box.createHorizontalGlue());
+        transportRow.add(prevButton);
+        transportRow.add(Box.createHorizontalGlue());
+        transportRow.add(playPauseButton);
+        transportRow.add(Box.createHorizontalGlue());
+        transportRow.add(nextButton);
+        transportRow.add(Box.createHorizontalGlue());
+        transportRow.add(repeatButton);
+        transportRow.add(Box.createHorizontalGlue());
+
+        add(transportRow);
+        add(Box.createVerticalStrut(Theme.EIGHT));
+
+        // --- 2. Slim Bottom Row: Mute on left, status center, Volume slider on right ---
+        JPanel bottomRow = new JPanel(new BorderLayout(Theme.EIGHT, Theme.ZERO));
+        bottomRow.setOpaque(false);
+        bottomRow.setPreferredSize(new Dimension(Theme.THREE_HUNDRED, Theme.TWENTY_EIGHT));
+        bottomRow.setBorder(BorderFactory.createEmptyBorder(Theme.TWO, Theme.FOUR, Theme.TWO, Theme.FOUR));
+
+        muteButton = new RoundGlossButton(
+                RoundGlossButton.IconType.MUTE,
+                Theme.MUTE_BUTTON_SIZE,
+                "Toggle Mute (M)"
+        );
+        muteButton.addActionListener(e -> {
+            boolean nextVal = !muteButton.isSelectedToggle();
+            muteButton.setSelectedToggle(nextVal);
+            muteButton.setMuted(nextVal);
+            if (this.controller != null) {
+                this.controller.setMuted(nextVal);
+            }
+        });
+        bottomRow.add(muteButton, BorderLayout.WEST);
+
+        statusLabel = new JLabel("Ready", JLabel.CENTER);
+        statusLabel.setFont(Theme.FONT_STATUS);
+        statusLabel.setForeground(Theme.TEXT_MUTED);
+        bottomRow.add(statusLabel, BorderLayout.CENTER);
+
+        JPanel volumeGroup = new JPanel(new FlowLayout(FlowLayout.RIGHT, Theme.FOUR, Theme.ZERO));
+        volumeGroup.setOpaque(false);
+
+        volumeSlider = new SkinSlider(Theme.ZERO, Theme.VOLUME_MAX, Theme.VOLUME_MAX);
+        volumeSlider.setFillColor(Theme.VOLUME_FILL);
+        volumeSlider.setPreferredSize(new Dimension(Theme.VOLUME_SLIDER_WIDTH, Theme.VOLUME_SLIDER_HEIGHT));
+        volumeSlider.setToolTipText("Volume (Up / Down)");
+        volumeSlider.addChangeListener(e -> {
+            if (!volumeSlider.getValueIsAdjusting() && this.controller != null) {
+                this.controller.setVolume(volumeSlider.getValue() / Theme.PERCENT_DIVISOR);
+            }
+        });
+
+        volumeGroup.add(volumeSlider);
+        volumeGroup.add(new ResizeGrip());
+        bottomRow.add(volumeGroup, BorderLayout.EAST);
+
+        add(bottomRow);
+
+        // Standalone PL button instance for the Top Row
+        playlistButton = new RoundGlossButton(
+                RoundGlossButton.IconType.PL,
+                Theme.PL_BUTTON_WIDTH,
+                Theme.PL_BUTTON_HEIGHT,
+                "Toggle Playlist Panel"
+        );
         playlistButton.setSelectedToggle(false);
         playlistButton.addActionListener(e -> {
             boolean nextVal = !playlistButton.isSelectedToggle();
@@ -85,40 +179,13 @@ public class TransportBar extends JPanel implements ControllerListener {
             }
         });
 
-        controlsGroup.add(repeatButton);
-        controlsGroup.add(shuffleButton);
-        controlsGroup.add(playlistButton);
+        if (controller != null) {
+            controller.addListener(this);
+        }
+    }
 
-        add(controlsGroup, BorderLayout.CENTER);
-
-        // --- Right Area: Volume slider + Mute button + Resize grip ---
-        JPanel rightGroup = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 4));
-        rightGroup.setOpaque(false);
-
-        muteButton = new RoundGlossButton("Mute", 44, 22, "Mute Volume");
-        muteButton.addActionListener(e -> {
-            boolean nextVal = !muteButton.isSelectedToggle();
-            muteButton.setSelectedToggle(nextVal);
-            controller.setMuted(nextVal);
-        });
-
-        volumeSlider = new SkinSlider(0, 100, 100);
-        volumeSlider.setPreferredSize(new Dimension(80, 20));
-        volumeSlider.setToolTipText("Volume");
-        volumeSlider.addChangeListener(e -> {
-            if (!volumeSlider.getValueIsAdjusting()) {
-                controller.setVolume(volumeSlider.getValue() / 100.0);
-            }
-        });
-
-        rightGroup.add(muteButton);
-        rightGroup.add(volumeSlider);
-        rightGroup.add(Box.createHorizontalStrut(4));
-        rightGroup.add(new ResizeGrip());
-
-        add(rightGroup, BorderLayout.EAST);
-
-        controller.addListener(this);
+    public RoundGlossButton getPlaylistButton() {
+        return playlistButton;
     }
 
     public void setOnPlaylistToggle(java.util.function.Consumer<Boolean> listener) {
@@ -135,23 +202,31 @@ public class TransportBar extends JPanel implements ControllerListener {
             case ALL -> RepeatMode.ONE;
             case ONE -> RepeatMode.OFF;
         };
-        controller.setRepeatMode(nextMode);
+        if (controller != null) {
+            controller.setRepeatMode(nextMode);
+        }
     }
 
     @Override
     public void onStateChanged(PlayerState state) {
-        if (state == PlayerState.PLAYING) {
-            playPauseButton.setIconType(RoundGlossButton.IconType.PAUSE);
-        } else {
-            playPauseButton.setIconType(RoundGlossButton.IconType.PLAY);
+        boolean playing = (state == PlayerState.PLAYING);
+        playPauseButton.setPlaying(playing);
+
+        switch (state) {
+            case PLAYING -> statusLabel.setText("Playing");
+            case PAUSED -> statusLabel.setText("Paused");
+            case LOADING -> statusLabel.setText("Loading...");
+            case STOPPED -> statusLabel.setText("Stopped");
+            case ERROR -> statusLabel.setText("Error");
+            case IDLE -> statusLabel.setText("Ready");
         }
     }
 
     @Override
     public void onVolumeChanged(double volume, boolean muted) {
-        volumeSlider.setValue((int) Math.round(volume * 100));
+        volumeSlider.setValue((int) Math.round(volume * Theme.PERCENT_MULTIPLIER));
         muteButton.setSelectedToggle(muted);
-        muteButton.setText(muted ? "Muted" : "Mute");
+        muteButton.setMuted(muted);
     }
 
     @Override
@@ -159,16 +234,16 @@ public class TransportBar extends JPanel implements ControllerListener {
         this.currentRepeatMode = mode;
         switch (mode) {
             case OFF -> {
-                repeatButton.setText("Rpt: Off");
                 repeatButton.setSelectedToggle(false);
+                repeatButton.setRepeatOne(false);
             }
             case ALL -> {
-                repeatButton.setText("Rpt: All");
                 repeatButton.setSelectedToggle(true);
+                repeatButton.setRepeatOne(false);
             }
             case ONE -> {
-                repeatButton.setText("Rpt: One");
                 repeatButton.setSelectedToggle(true);
+                repeatButton.setRepeatOne(true);
             }
         }
     }
@@ -176,6 +251,5 @@ public class TransportBar extends JPanel implements ControllerListener {
     @Override
     public void onShuffleChanged(boolean shuffle) {
         shuffleButton.setSelectedToggle(shuffle);
-        shuffleButton.setText(shuffle ? "Shuf: On" : "Shuf: Off");
     }
 }

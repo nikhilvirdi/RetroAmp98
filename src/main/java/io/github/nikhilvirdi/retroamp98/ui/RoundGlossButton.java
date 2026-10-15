@@ -1,46 +1,47 @@
 package io.github.nikhilvirdi.retroamp98.ui;
 
-import javax.swing.AbstractButton;
 import javax.swing.JButton;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FontMetrics;
-import java.awt.GradientPaint;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.LinearGradientPaint;
 import java.awt.Polygon;
 import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.geom.Ellipse2D;
+import java.awt.geom.Path2D;
 import java.awt.geom.RoundRectangle2D;
 
 /**
- * Custom glossy round button rendering Windows Media Player 9 Series jewel controls.
- * Features multi-stop metallic gradients, glossy specular reflections, hover highlights,
- * and vector-drawn transport icons.
+ * Modern dark-styled vector icon and pill button for RetroAmp98.
+ * Supports Play/Pause (large white circle), Shuffle, Prev, Next, Repeat (with "1" badge),
+ * Mute icon, and small rounded "PL" pill button.
+ * Drawn entirely with Java2D paths and Theme constants.
  */
 public class RoundGlossButton extends JButton {
 
     public enum IconType {
+        PLAY_PAUSE,
         PLAY,
         PAUSE,
         STOP,
         PREV,
         NEXT,
+        SHUFFLE,
+        REPEAT,
+        MUTE,
+        PL,
         TEXT_ONLY
     }
 
     private IconType iconType;
-    private final boolean isCircular;
+    private boolean isCircular;
     private boolean isHovered = false;
     private boolean isSelectedToggle = false;
-
-    public void setIconType(IconType iconType) {
-        this.iconType = iconType;
-        repaint();
-    }
+    private boolean isPlaying = false;
+    private boolean isRepeatOne = false;
+    private boolean isMuted = false;
 
     public RoundGlossButton(IconType iconType, int diameter, String tooltip) {
         this.iconType = iconType;
@@ -51,11 +52,21 @@ public class RoundGlossButton extends JButton {
         initButton(tooltip);
     }
 
+    public RoundGlossButton(IconType iconType, int width, int height, String tooltip) {
+        this.iconType = iconType;
+        this.isCircular = false;
+        setPreferredSize(new Dimension(width, height));
+        setMinimumSize(new Dimension(width, height));
+        setMaximumSize(new Dimension(width, height));
+        initButton(tooltip);
+    }
+
     public RoundGlossButton(String text, int width, int height, String tooltip) {
         super(text);
         this.iconType = IconType.TEXT_ONLY;
         this.isCircular = false;
         setPreferredSize(new Dimension(width, height));
+        setMinimumSize(new Dimension(width, height));
         initButton(tooltip);
     }
 
@@ -82,6 +93,11 @@ public class RoundGlossButton extends JButton {
         });
     }
 
+    public void setIconType(IconType iconType) {
+        this.iconType = iconType;
+        repaint();
+    }
+
     public void setSelectedToggle(boolean selected) {
         this.isSelectedToggle = selected;
         repaint();
@@ -91,226 +107,289 @@ public class RoundGlossButton extends JButton {
         return isSelectedToggle;
     }
 
+    public void setPlaying(boolean playing) {
+        this.isPlaying = playing;
+        repaint();
+    }
+
+    public void setRepeatOne(boolean repeatOne) {
+        this.isRepeatOne = repeatOne;
+        repaint();
+    }
+
+    public void setMuted(boolean muted) {
+        this.isMuted = muted;
+        repaint();
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
         int w = getWidth();
         int h = getHeight();
-        boolean pressed = getModel().isPressed() || isSelectedToggle;
+        boolean pressed = getModel().isPressed();
 
-        int size = Math.min(w, h) - 2;
-        int x = (w - size) / 2;
-        int y = (h - size) / 2;
-
-        if (isCircular) {
-            paintCircularButton(g2, x, y, size, pressed);
+        if (iconType == IconType.PLAY_PAUSE || (iconType == IconType.PLAY && isCircular && w >= Theme.FORTY)) {
+            paintLargePlayPauseCircle(g2, w, h, pressed);
+        } else if (iconType == IconType.PL) {
+            paintPlButton(g2, w, h, pressed);
+        } else if (isCircular) {
+            paintTransportCircle(g2, w, h, pressed);
         } else {
-            paintPillButton(g2, 1, 1, w - 2, h - 2, pressed);
+            paintGenericPill(g2, w, h, pressed);
         }
 
-        // Paint transport icon or text
-        paintContent(g2, w, h, pressed);
+        paintGlyph(g2, w, h, pressed);
 
         g2.dispose();
     }
 
-    private void paintCircularButton(Graphics2D g2, int x, int y, int size, boolean pressed) {
-        // Outer dark shadow ring
-        g2.setColor(Theme.BTN_SHADOW_RING);
-        g2.fillOval(x, y + 1, size, size);
+    private void paintLargePlayPauseCircle(Graphics2D g2, int w, int h, boolean pressed) {
+        int size = Math.min(w, h) - Theme.TWO;
+        int x = (w - size) / Theme.TWO;
+        int y = (h - size) / Theme.TWO;
 
-        // Base metallic gradient
-        Color top = pressed ? Theme.BTN_PRESSED_TOP : (isHovered ? Theme.BTN_HOVER_GLOW : Theme.BTN_GRAD_TOP);
-        Color mid = pressed ? Theme.BTN_PRESSED_BOTTOM : Theme.BTN_GRAD_MID;
-        Color bottom = pressed ? Theme.BTN_GRAD_MID : Theme.BTN_GRAD_BOTTOM;
-
-        LinearGradientPaint baseGrad = new LinearGradientPaint(
-                x, y, x, y + size,
-                new float[]{0.0f, 0.45f, 1.0f},
-                new Color[]{top, mid, bottom}
-        );
-        g2.setPaint(baseGrad);
+        Color bg = pressed ? Theme.PLAY_BUTTON_PRESSED : (isHovered ? Theme.PLAY_BUTTON_HOVER : Theme.PLAY_BUTTON_BG);
+        g2.setColor(bg);
         g2.fillOval(x, y, size, size);
-
-        if (!pressed) {
-            // Specular gloss dome on top half
-            int glossW = size - 6;
-            int glossH = (int) (size * 0.48);
-            int glossX = x + 3;
-            int glossY = y + 2;
-
-            GradientPaint glossGrad = new GradientPaint(
-                    glossX, glossY, Theme.BTN_GLOSS_TOP,
-                    glossX, glossY + glossH, Theme.BTN_GLOSS_BOTTOM
-            );
-            g2.setPaint(glossGrad);
-            g2.fill(new Ellipse2D.Double(glossX, glossY, glossW, glossH));
-        }
-
-        // Rim border
-        g2.setColor(isHovered ? Theme.BTN_HOVER_GLOW : Theme.BTN_BORDER);
-        g2.drawOval(x, y, size, size);
     }
 
-    private void paintPillButton(Graphics2D g2, int x, int y, int w, int h, boolean pressed) {
-        int arc = h;
-        Color top;
-        Color mid;
-        Color bottom;
-        Color border;
-
-        if (isSelectedToggle) {
-            top = Theme.BTN_ACTIVE_GRAD_TOP;
-            mid = Theme.BTN_ACTIVE_GRAD_MID;
-            bottom = Theme.BTN_ACTIVE_GRAD_BOTTOM;
-            border = Theme.BTN_ACTIVE_BORDER;
-
-            // Outer cyan glow ring
-            g2.setColor(Theme.BTN_ACTIVE_GLOW);
-            g2.draw(new RoundRectangle2D.Double(x - 1, y - 1, w + 2, h + 2, arc + 2, arc + 2));
-        } else if (pressed) {
-            top = Theme.BTN_PRESSED_TOP;
-            mid = Theme.BTN_PRESSED_BOTTOM;
-            bottom = Theme.BTN_PRESSED_BOTTOM;
-            border = Theme.BTN_BORDER;
-        } else {
-            top = isHovered ? Theme.BTN_HOVER_GLOW : Theme.BTN_GRAD_TOP;
-            mid = Theme.BTN_GRAD_MID;
-            bottom = Theme.BTN_GRAD_BOTTOM;
-            border = isHovered ? Theme.BTN_HOVER_GLOW : Theme.BTN_BORDER;
+    private void paintTransportCircle(Graphics2D g2, int w, int h, boolean pressed) {
+        if (pressed) {
+            g2.setColor(Theme.BTN_BG_PRESSED);
+            g2.fillOval(Theme.ONE, Theme.ONE, w - Theme.TWO, h - Theme.TWO);
+        } else if (isHovered) {
+            g2.setColor(Theme.BTN_BG_HOVER);
+            g2.fillOval(Theme.ONE, Theme.ONE, w - Theme.TWO, h - Theme.TWO);
         }
+    }
 
-        LinearGradientPaint baseGrad = new LinearGradientPaint(
-                x, y, x, y + h,
-                new float[]{0.0f, 0.5f, 1.0f},
-                new Color[]{top, mid, bottom}
+    private void paintPlButton(Graphics2D g2, int w, int h, boolean pressed) {
+        Color bg = isSelectedToggle ? Theme.BTN_PILL_ACTIVE_BG : (pressed ? Theme.BTN_PILL_PRESSED : (isHovered ? Theme.BTN_PILL_HOVER : Theme.BTN_PILL_BG));
+        Color border = isSelectedToggle ? Theme.BTN_PILL_ACTIVE_BORDER : Theme.BTN_PILL_BORDER;
+
+        RoundRectangle2D pill = new RoundRectangle2D.Double(
+                Theme.ONE, Theme.ONE,
+                w - Theme.TWO, h - Theme.TWO,
+                Theme.RADIUS_SMALL, Theme.RADIUS_SMALL
         );
-        g2.setPaint(baseGrad);
-        g2.fill(new RoundRectangle2D.Double(x, y, w, h, arc, arc));
-
-        if (!pressed) {
-            // Pill top gloss
-            GradientPaint glossGrad = new GradientPaint(
-                    x, y, isSelectedToggle ? Theme.BTN_PILL_ACTIVE_GLOSS_TOP : Theme.BTN_PILL_GLOSS_TOP,
-                    x, y + h / 2.0f, Theme.BTN_PILL_GLOSS_BOTTOM
-            );
-            g2.setPaint(glossGrad);
-            g2.fill(new RoundRectangle2D.Double(x + 2, y + 1, w - 4, (h / 2.0) - 1, arc / 2.0, arc / 2.0));
-        }
+        g2.setColor(bg);
+        g2.fill(pill);
 
         g2.setColor(border);
-        g2.draw(new RoundRectangle2D.Double(x, y, w, h, arc, arc));
+        g2.setStroke(Theme.STROKE_ONE);
+        g2.draw(pill);
     }
 
-    private void paintContent(Graphics2D g2, int w, int h, boolean pressed) {
-        int cx = w / 2;
-        int cy = h / 2 + (pressed ? 1 : 0);
+    private void paintGenericPill(Graphics2D g2, int w, int h, boolean pressed) {
+        Color bg = pressed ? Theme.BTN_PILL_PRESSED : (isHovered ? Theme.BTN_PILL_HOVER : Theme.BTN_PILL_BG);
+        Color border = Theme.BTN_PILL_BORDER;
 
-        Color iconColor = isHovered ? Theme.BTN_ICON_HOVER : Theme.BTN_ICON_NORMAL;
-        Color shadowColor = Theme.BTN_ICON_SHADOW;
+        RoundRectangle2D pill = new RoundRectangle2D.Double(
+                Theme.ONE, Theme.ONE,
+                w - Theme.TWO, h - Theme.TWO,
+                Theme.RADIUS_SMALL, Theme.RADIUS_SMALL
+        );
+        g2.setColor(bg);
+        g2.fill(pill);
+
+        g2.setColor(border);
+        g2.setStroke(Theme.STROKE_ONE);
+        g2.draw(pill);
+    }
+
+    private void paintGlyph(Graphics2D g2, int w, int h, boolean pressed) {
+        int cx = w / Theme.TWO;
+        int cy = h / Theme.TWO + (pressed ? Theme.ONE : Theme.ZERO);
+
+        Color glyphColor;
+        if (isSelectedToggle) {
+            glyphColor = Theme.ACCENT;
+        } else if (isHovered) {
+            glyphColor = Theme.BTN_ICON_HOVER;
+        } else {
+            glyphColor = Theme.BTN_ICON_NORMAL;
+        }
 
         switch (iconType) {
+            case PLAY_PAUSE -> {
+                g2.setColor(Theme.PLAY_BUTTON_ICON);
+                if (isPlaying) {
+                    paintPauseBars(g2, cx, cy);
+                } else {
+                    paintPlayTriangle(g2, cx, cy);
+                }
+            }
             case PLAY -> {
-                int s = 6;
-                Polygon shadow = new Polygon(
-                        new int[]{cx - s + 1, cx + s + 1, cx - s + 1},
-                        new int[]{cy - s + 1, cy + 1, cy + s + 1}, 3
-                );
-                Polygon tri = new Polygon(
-                        new int[]{cx - s, cx + s, cx - s},
-                        new int[]{cy - s, cy, cy + s}, 3
-                );
-                g2.setColor(shadowColor);
-                g2.fill(shadow);
-                g2.setColor(iconColor);
-                g2.fill(tri);
+                g2.setColor(w >= Theme.FORTY ? Theme.PLAY_BUTTON_ICON : glyphColor);
+                paintPlayTriangle(g2, cx, cy);
             }
             case PAUSE -> {
-                int bw = 3;
-                int bh = 11;
-                int gap = 3;
-                // Shadow
-                g2.setColor(shadowColor);
-                g2.fillRect(cx - bw - gap / 2 + 1, cy - bh / 2 + 1, bw, bh);
-                g2.fillRect(cx + gap / 2 + 1, cy - bh / 2 + 1, bw, bh);
-                // Foreground
-                g2.setColor(iconColor);
-                g2.fillRect(cx - bw - gap / 2, cy - bh / 2, bw, bh);
-                g2.fillRect(cx + gap / 2, cy - bh / 2, bw, bh);
+                g2.setColor(w >= Theme.FORTY ? Theme.PLAY_BUTTON_ICON : glyphColor);
+                paintPauseBars(g2, cx, cy);
             }
             case STOP -> {
-                int sq = 9;
-                g2.setColor(shadowColor);
-                g2.fillRect(cx - sq / 2 + 1, cy - sq / 2 + 1, sq, sq);
-                g2.setColor(iconColor);
-                g2.fillRect(cx - sq / 2, cy - sq / 2, sq, sq);
+                g2.setColor(glyphColor);
+                g2.fillRect(cx - Theme.FIVE, cy - Theme.FIVE, Theme.TEN, Theme.TEN);
             }
             case PREV -> {
-                int s = 5;
-                // Vertical bar
-                g2.setColor(shadowColor);
-                g2.fillRect(cx - s - 2 + 1, cy - s + 1, 2, s * 2);
-                Polygon shadow = new Polygon(
-                        new int[]{cx + s + 1, cx - s + 1, cx + s + 1},
-                        new int[]{cy - s + 1, cy + 1, cy + s + 1}, 3
-                );
-                g2.fill(shadow);
-
-                g2.setColor(iconColor);
-                g2.fillRect(cx - s - 2, cy - s, 2, s * 2);
+                g2.setColor(glyphColor);
+                g2.fillRect(cx - Theme.SEVEN, cy - Theme.SIX, Theme.TWO, Theme.TWELVE);
                 Polygon tri = new Polygon(
-                        new int[]{cx + s, cx - s, cx + s},
-                        new int[]{cy - s, cy, cy + s}, 3
+                        new int[]{cx + Theme.SIX, cx - Theme.FOUR, cx + Theme.SIX},
+                        new int[]{cy - Theme.SIX, cy, cy + Theme.SIX},
+                        Theme.THREE
                 );
                 g2.fill(tri);
             }
             case NEXT -> {
-                int s = 5;
-                // Vertical bar
-                g2.setColor(shadowColor);
-                g2.fillRect(cx + s + 1, cy - s + 1, 2, s * 2);
-                Polygon shadow = new Polygon(
-                        new int[]{cx - s + 1, cx + s + 1, cx - s + 1},
-                        new int[]{cy - s + 1, cy + 1, cy + s + 1}, 3
-                );
-                g2.fill(shadow);
-
-                g2.setColor(iconColor);
-                g2.fillRect(cx + s, cy - s, 2, s * 2);
+                g2.setColor(glyphColor);
                 Polygon tri = new Polygon(
-                        new int[]{cx - s, cx + s, cx - s},
-                        new int[]{cy - s, cy, cy + s}, 3
+                        new int[]{cx - Theme.SIX, cx + Theme.FOUR, cx - Theme.SIX},
+                        new int[]{cy - Theme.SIX, cy, cy + Theme.SIX},
+                        Theme.THREE
                 );
                 g2.fill(tri);
+                g2.fillRect(cx + Theme.FIVE, cy - Theme.SIX, Theme.TWO, Theme.TWELVE);
+            }
+            case SHUFFLE -> {
+                g2.setColor(glyphColor);
+                g2.setStroke(Theme.STROKE_TWO);
+
+                // Upper curved path
+                Path2D path1 = new Path2D.Double();
+                path1.moveTo(cx - Theme.EIGHT, cy + Theme.FIVE);
+                path1.curveTo(cx - Theme.TWO, cy + Theme.FIVE, cx + Theme.TWO, cy - Theme.FIVE, cx + Theme.EIGHT, cy - Theme.FIVE);
+                g2.draw(path1);
+
+                // Lower curved path
+                Path2D path2 = new Path2D.Double();
+                path2.moveTo(cx - Theme.EIGHT, cy - Theme.FIVE);
+                path2.curveTo(cx - Theme.TWO, cy - Theme.FIVE, cx + Theme.TWO, cy + Theme.FIVE, cx + Theme.EIGHT, cy + Theme.FIVE);
+                g2.draw(path2);
+
+                // Arrowheads
+                g2.setStroke(Theme.STROKE_ONE);
+                Polygon arrow1 = new Polygon(
+                        new int[]{cx + Theme.FIVE, cx + Theme.NINE, cx + Theme.FIVE},
+                        new int[]{cy - Theme.EIGHT, cy - Theme.FIVE, cy - Theme.TWO},
+                        Theme.THREE
+                );
+                g2.fill(arrow1);
+
+                Polygon arrow2 = new Polygon(
+                        new int[]{cx + Theme.FIVE, cx + Theme.NINE, cx + Theme.FIVE},
+                        new int[]{cy + Theme.TWO, cy + Theme.FIVE, cy + Theme.EIGHT},
+                        Theme.THREE
+                );
+                g2.fill(arrow2);
+            }
+            case REPEAT -> {
+                g2.setColor(glyphColor);
+                g2.setStroke(Theme.STROKE_TWO);
+
+                // Top loop line
+                g2.drawLine(cx - Theme.FIVE, cy - Theme.FIVE, cx + Theme.FOUR, cy - Theme.FIVE);
+                g2.drawLine(cx + Theme.FOUR, cy - Theme.FIVE, cx + Theme.SIX, cy - Theme.THREE);
+                g2.drawLine(cx + Theme.SIX, cy - Theme.THREE, cx + Theme.SIX, cy - Theme.ONE);
+
+                // Bottom loop line
+                g2.drawLine(cx + Theme.FIVE, cy + Theme.FIVE, cx - Theme.FOUR, cy + Theme.FIVE);
+                g2.drawLine(cx - Theme.FOUR, cy + Theme.FIVE, cx - Theme.SIX, cy + Theme.THREE);
+                g2.drawLine(cx - Theme.SIX, cy + Theme.THREE, cx - Theme.SIX, cy + Theme.ONE);
+
+                // Arrowhead top
+                g2.setStroke(Theme.STROKE_ONE);
+                Polygon arrowTop = new Polygon(
+                        new int[]{cx + Theme.TWO, cx + Theme.SIX, cx + Theme.SIX},
+                        new int[]{cy - Theme.EIGHT, cy - Theme.FIVE, cy - Theme.ONE},
+                        Theme.THREE
+                );
+                g2.fill(arrowTop);
+
+                // Arrowhead bottom
+                Polygon arrowBottom = new Polygon(
+                        new int[]{cx - Theme.TWO, cx - Theme.SIX, cx - Theme.SIX},
+                        new int[]{cy + Theme.EIGHT, cy + Theme.FIVE, cy + Theme.ONE},
+                        Theme.THREE
+                );
+                g2.fill(arrowBottom);
+
+                // Badge "1" if repeat mode is ONE
+                if (isRepeatOne) {
+                    g2.setFont(Theme.FONT_BADGE);
+                    g2.setColor(Theme.ACCENT);
+                    FontMetrics bfm = g2.getFontMetrics();
+                    int bw = bfm.stringWidth("1");
+                    g2.drawString("1", cx - bw / Theme.TWO, cy + Theme.THREE);
+                }
+            }
+            case MUTE -> {
+                g2.setColor(isMuted ? Theme.ACCENT : glyphColor);
+
+                // Speaker base rectangle
+                g2.fillRect(cx - Theme.SIX, cy - Theme.THREE, Theme.THREE, Theme.SIX);
+
+                // Speaker cone polygon
+                Polygon cone = new Polygon(
+                        new int[]{cx - Theme.THREE, cx + Theme.ONE, cx + Theme.ONE, cx - Theme.THREE},
+                        new int[]{cy - Theme.THREE, cy - Theme.SIX, cy + Theme.SIX, cy + Theme.THREE},
+                        Theme.FOUR
+                );
+                g2.fill(cone);
+
+                if (isMuted) {
+                    // Draw 'X' mute indicator
+                    g2.setStroke(Theme.STROKE_TWO);
+                    g2.drawLine(cx + Theme.FOUR, cy - Theme.THREE, cx + Theme.EIGHT, cy + Theme.THREE);
+                    g2.drawLine(cx + Theme.EIGHT, cy - Theme.THREE, cx + Theme.FOUR, cy + Theme.THREE);
+                } else {
+                    // Draw sound wave arcs
+                    g2.setStroke(Theme.STROKE_ONE);
+                    g2.drawArc(cx + Theme.ONE, cy - Theme.FOUR, Theme.FOUR, Theme.EIGHT, -Theme.FORTY_FIVE, Theme.NINETY);
+                    g2.drawArc(cx + Theme.THREE, cy - Theme.SIX, Theme.SIX, Theme.TWELVE, -Theme.FORTY_FIVE, Theme.NINETY);
+                }
+            }
+            case PL -> {
+                g2.setFont(Theme.FONT_BUTTON_LABEL);
+                g2.setColor(isSelectedToggle ? Theme.BTN_PILL_ACTIVE_TEXT : Theme.BTN_PILL_TEXT);
+                FontMetrics fm = g2.getFontMetrics();
+                int tw = fm.stringWidth("PL");
+                int ty = cy + fm.getAscent() / Theme.TWO - Theme.ONE;
+                g2.drawString("PL", cx - tw / Theme.TWO, ty);
             }
             case TEXT_ONLY -> {
                 String text = getText();
                 if (text != null && !text.isEmpty()) {
+                    g2.setFont(Theme.FONT_BUTTON_LABEL);
+                    g2.setColor(Theme.BTN_PILL_TEXT);
                     FontMetrics fm = g2.getFontMetrics();
                     int tw = fm.stringWidth(text);
-                    int th = fm.getAscent();
-                    int tx = cx - tw / 2;
-                    int ty = cy + th / 2 - 2;
-
-                    Color txtColor;
-                    if (isSelectedToggle) {
-                        txtColor = Theme.BTN_ACTIVE_TEXT;
-                    } else if (isHovered) {
-                        txtColor = Theme.BTN_TEXT_HOVER;
-                    } else {
-                        txtColor = Theme.BTN_TEXT_INACTIVE;
-                    }
-
-                    // Text shadow
-                    g2.setColor(isSelectedToggle ? Theme.BTN_BORDER : Theme.BTN_ICON_SHADOW);
-                    g2.drawString(text, tx + 1, ty + 1);
-                    g2.setColor(txtColor);
-                    g2.drawString(text, tx, ty);
+                    int ty = cy + fm.getAscent() / Theme.TWO - Theme.ONE;
+                    g2.drawString(text, cx - tw / Theme.TWO, ty);
                 }
             }
         }
+    }
+
+    private void paintPlayTriangle(Graphics2D g2, int cx, int cy) {
+        Polygon tri = new Polygon(
+                new int[]{cx - Theme.FOUR, cx + Theme.EIGHT, cx - Theme.FOUR},
+                new int[]{cy - Theme.SEVEN, cy, cy + Theme.SEVEN},
+                Theme.THREE
+        );
+        g2.fill(tri);
+    }
+
+    private void paintPauseBars(Graphics2D g2, int cx, int cy) {
+        int bw = Theme.FOUR;
+        int bh = Theme.FOURTEEN;
+        int gap = Theme.FOUR;
+        g2.fillRoundRect(cx - bw - gap / Theme.TWO, cy - bh / Theme.TWO, bw, bh, Theme.TWO, Theme.TWO);
+        g2.fillRoundRect(cx + gap / Theme.TWO, cy - bh / Theme.TWO, bw, bh, Theme.TWO, Theme.TWO);
     }
 }

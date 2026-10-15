@@ -7,6 +7,7 @@ import io.github.nikhilvirdi.retroamp98.util.SettingsManager;
 import javax.swing.AbstractAction;
 import javax.swing.ActionMap;
 import javax.swing.BorderFactory;
+import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.InputMap;
@@ -14,6 +15,7 @@ import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
@@ -24,18 +26,17 @@ import javax.swing.KeyStroke;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.text.JTextComponent;
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.KeyboardFocusManager;
-import java.awt.LinearGradientPaint;
 import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.geom.RoundRectangle2D;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,9 +44,9 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Windows Media Player 9 Series ("Corona" XP era) styled main audio player window.
- * Features silver-blue metallic body, top menu bar, central LCD display,
- * dark status strip, collapsible playlist, and glossy bottom docked controls.
+ * Main window for RetroAmp98 with a dark "Now Playing" layout.
+ * Features an outer dark charcoal rounded card (Theme.RADIUS_OUTER) with subtle border,
+ * split 50/50 horizontally into a left poster panel and a right control panel.
  */
 public class MainWindow extends JFrame implements ControllerListener {
 
@@ -84,87 +85,173 @@ public class MainWindow extends JFrame implements ControllerListener {
         });
 
         setResizable(true);
-        setMinimumSize(new Dimension(480, 300));
-        setPreferredSize(new Dimension(600, 420));
+        setMinimumSize(new Dimension(Theme.WINDOW_MIN_WIDTH, Theme.WINDOW_MIN_HEIGHT));
+        setPreferredSize(new Dimension(Theme.WINDOW_DEFAULT_WIDTH, Theme.WINDOW_DEFAULT_HEIGHT));
 
-        // Root container with WMP 9 silver-blue metallic body gradient
-        JPanel rootPanel = new JPanel(new BorderLayout(0, 0)) {
+        // Root container with dark background and Theme.PADDING_OUTER around the card
+        JPanel rootPanel = new JPanel(new BorderLayout(Theme.ZERO, Theme.ZERO));
+        rootPanel.setBackground(Theme.WINDOW_BG);
+        rootPanel.setBorder(BorderFactory.createEmptyBorder(
+                Theme.PADDING_OUTER, Theme.PADDING_OUTER,
+                Theme.PADDING_OUTER, Theme.PADDING_OUTER
+        ));
+
+        // Dark charcoal rounded card container (Theme.RADIUS_OUTER) with 1px border
+        JPanel cardPanel = new JPanel(new BorderLayout(Theme.ZERO, Theme.ZERO)) {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
                 int w = getWidth();
                 int h = getHeight();
 
-                LinearGradientPaint bodyGrad = new LinearGradientPaint(
-                        0, 0, 0, h,
-                        new float[]{0.0f, 0.40f, 1.0f},
-                        new Color[]{Theme.BODY_GRADIENT_TOP, Theme.BODY_GRADIENT_MID, Theme.BODY_GRADIENT_BOTTOM}
+                RoundRectangle2D cardShape = new RoundRectangle2D.Double(
+                        Theme.ZERO, Theme.ZERO,
+                        w - Theme.ONE, h - Theme.ONE,
+                        Theme.RADIUS_OUTER, Theme.RADIUS_OUTER
                 );
-                g2.setPaint(bodyGrad);
-                g2.fillRect(0, 0, w, h);
 
-                // Top highlight line
-                g2.setColor(Theme.BODY_HIGHLIGHT);
-                g2.drawLine(0, 0, w, 0);
+                g2.setColor(Theme.CARD_BG);
+                g2.fill(cardShape);
+
+                g2.setColor(Theme.OUTER_BORDER);
+                g2.setStroke(Theme.STROKE_ONE);
+                g2.draw(cardShape);
+
+                g2.dispose();
+            }
+
+            @Override
+            protected void paintChildren(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                int w = getWidth();
+                int h = getHeight();
+
+                // Clip children inside the rounded rectangle card
+                RoundRectangle2D clipShape = new RoundRectangle2D.Double(
+                        Theme.ZERO, Theme.ZERO,
+                        w, h,
+                        Theme.RADIUS_OUTER, Theme.RADIUS_OUTER
+                );
+                g2.setClip(clipShape);
+
+                super.paintChildren(g2);
+
+                // Draw crisp border over child edges
+                RoundRectangle2D borderShape = new RoundRectangle2D.Double(
+                        Theme.ZERO, Theme.ZERO,
+                        w - Theme.ONE, h - Theme.ONE,
+                        Theme.RADIUS_OUTER, Theme.RADIUS_OUTER
+                );
+                g2.setColor(Theme.OUTER_BORDER);
+                g2.setStroke(Theme.STROKE_ONE);
+                g2.draw(borderShape);
 
                 g2.dispose();
             }
         };
+        cardPanel.setOpaque(false);
 
-        // Center workspace: LCD display + Status strip + Collapsible Playlist
-        JPanel centerWorkspace = new JPanel(new BorderLayout(4, 0));
-        centerWorkspace.setOpaque(false);
-        centerWorkspace.setBorder(BorderFactory.createEmptyBorder(6, 6, 2, 6));
+        // Horizontal split container: Left 50% Poster, Right 50% Controls
+        JPanel splitContainer = new JPanel() {
+            @Override
+            public void doLayout() {
+                int totalWidth = getWidth();
+                int totalHeight = getHeight();
 
-        // Display container holding LcdPanel and StatusStrip directly below it
-        JPanel displayContainer = new JPanel(new BorderLayout(0, 2));
-        displayContainer.setOpaque(false);
+                if (getComponentCount() < Theme.TWO) {
+                    return;
+                }
 
+                Component leftComp = getComponent(Theme.ZERO);
+                Component rightComp = getComponent(Theme.ONE);
+
+                int posterWidth = Math.max(Theme.POSTER_MIN_WIDTH, totalWidth / Theme.TWO);
+                int controlsWidth = Math.max(Theme.ZERO, totalWidth - posterWidth);
+
+                leftComp.setBounds(Theme.ZERO, Theme.ZERO, posterWidth, totalHeight);
+                rightComp.setBounds(posterWidth, Theme.ZERO, controlsWidth, totalHeight);
+            }
+        };
+        splitContainer.setLayout(null);
+        splitContainer.setOpaque(false);
+
+        // 1. LEFT POSTER PANEL (50% width, stretches full height)
         lcdPanel = new LcdPanel(controller);
-        statusStrip = new StatusStrip(controller);
+        splitContainer.add(lcdPanel);
 
-        displayContainer.add(lcdPanel, BorderLayout.CENTER);
-        displayContainer.add(statusStrip, BorderLayout.SOUTH);
+        // 2. RIGHT CONTAINER (50% width, contains Controls + Collapsible Playlist Drawer)
+        JPanel rightContainer = new JPanel(new BorderLayout(Theme.ZERO, Theme.ZERO));
+        rightContainer.setOpaque(false);
 
-        centerWorkspace.add(displayContainer, BorderLayout.CENTER);
+        // Right Control Panel (dark, from Theme.PANEL_BG)
+        JPanel controlsPanel = new JPanel();
+        controlsPanel.setLayout(new BoxLayout(controlsPanel, BoxLayout.Y_AXIS));
+        controlsPanel.setBackground(Theme.PANEL_BG);
+        controlsPanel.setOpaque(true);
+        controlsPanel.setBorder(BorderFactory.createEmptyBorder(
+                Theme.SIXTEEN, Theme.TWENTY_FOUR,
+                Theme.SIXTEEN, Theme.TWENTY_FOUR
+        ));
 
-        // Collapsible Playlist Panel on the side (starts collapsed)
-        playlistPanel = new PlaylistPanel(controller);
-        playlistPanel.setPreferredSize(new Dimension(240, 180));
-        playlistPanel.setVisible(false);
-        centerWorkspace.add(playlistPanel, BorderLayout.EAST);
-
-        rootPanel.add(centerWorkspace, BorderLayout.CENTER);
-
-        // Bottom docked controls: Seek Bar + Transport Bar
-        JPanel bottomControls = new JPanel();
-        bottomControls.setOpaque(false);
-        bottomControls.setLayout(new BoxLayout(bottomControls, BoxLayout.Y_AXIS));
-        bottomControls.setBorder(BorderFactory.createEmptyBorder(0, 6, 2, 6));
-
-        SeekBar seekBar = new SeekBar(controller);
-        seekBar.setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 4));
-
+        // Transport bar instance (provides controls and top-row PL button)
         transportBar = new TransportBar(controller);
         transportBar.setOnPlaylistToggle(this::setPlaylistVisible);
         transportBar.setPlaylistButtonSelected(false);
 
-        bottomControls.add(seekBar);
-        bottomControls.add(transportBar);
+        // Top Row: Centered "Now Playing" in Theme.TEXT_MUTED + Top-Right "PL" button
+        JPanel topRow = new JPanel(new BorderLayout());
+        topRow.setOpaque(false);
+        topRow.setMaximumSize(new Dimension(Theme.ONE_THOUSAND, Theme.TWENTY_EIGHT));
 
-        rootPanel.add(bottomControls, BorderLayout.SOUTH);
+        JLabel nowPlayingLabel = new JLabel("Now Playing", JLabel.CENTER);
+        nowPlayingLabel.setFont(Theme.FONT_TOP_TITLE);
+        nowPlayingLabel.setForeground(Theme.TEXT_MUTED);
+
+        // Balance left strut so label is perfectly centered
+        topRow.add(Box.createHorizontalStrut(Theme.PL_BUTTON_WIDTH), BorderLayout.WEST);
+        topRow.add(nowPlayingLabel, BorderLayout.CENTER);
+        topRow.add(transportBar.getPlaylistButton(), BorderLayout.EAST);
+
+        // Track Block: artist in Theme.TEXT_MUTED above, large bold title below
+        statusStrip = new StatusStrip(controller);
+
+        // Progress Bar: 3px line in Theme.PROGRESS_TRACK, Theme.ACCENT played, hover/drag thumb
+        SeekBar seekBar = new SeekBar(controller);
+
+        // Assemble controls panel
+        controlsPanel.add(topRow);
+        controlsPanel.add(Box.createVerticalGlue());
+        controlsPanel.add(statusStrip);
+        controlsPanel.add(Box.createVerticalStrut(Theme.SIXTEEN));
+        controlsPanel.add(seekBar);
+        controlsPanel.add(Box.createVerticalStrut(Theme.TWELVE));
+        controlsPanel.add(transportBar);
+        controlsPanel.add(Box.createVerticalGlue());
+
+        rightContainer.add(controlsPanel, BorderLayout.CENTER);
+
+        // Collapsible Playlist Drawer on the right of controls
+        playlistPanel = new PlaylistPanel(controller);
+        playlistPanel.setVisible(false);
+        rightContainer.add(playlistPanel, BorderLayout.EAST);
+
+        splitContainer.add(rightContainer);
+
+        cardPanel.add(splitContainer, BorderLayout.CENTER);
+        rootPanel.add(cardPanel, BorderLayout.CENTER);
 
         setJMenuBar(buildMenuBar());
         setContentPane(rootPanel);
 
-        // Global keyboard navigation
         setupGlobalKeyBindings();
 
         pack();
 
-        // Load & apply persistent settings
         applySettings();
 
         controller.addListener(this);
@@ -186,7 +273,7 @@ public class MainWindow extends JFrame implements ControllerListener {
         saveSettings();
         controller.stop();
         dispose();
-        System.exit(0);
+        System.exit(Theme.ZERO);
     }
 
     private void applySettings() {
@@ -197,14 +284,15 @@ public class MainWindow extends JFrame implements ControllerListener {
         controller.setRepeatMode(settingsManager.getRepeatMode());
         controller.setShuffle(settingsManager.isShuffle());
 
-        if (settingsManager.getWindowWidth() >= 480 && settingsManager.getWindowHeight() >= 300) {
+        if (settingsManager.getWindowWidth() >= Theme.WINDOW_MIN_WIDTH &&
+                settingsManager.getWindowHeight() >= Theme.WINDOW_MIN_HEIGHT) {
             setSize(settingsManager.getWindowWidth(), settingsManager.getWindowHeight());
         } else {
-            setSize(600, 420);
+            setSize(Theme.WINDOW_DEFAULT_WIDTH, Theme.WINDOW_DEFAULT_HEIGHT);
         }
         setLocationRelativeTo(null);
 
-        // Last playlist: reload without auto-play if file exists
+        // Reload last playlist without auto-play if exists
         String lastPl = settingsManager.getLastPlaylistPath();
         if (lastPl != null && !lastPl.isBlank()) {
             Path plPath = Path.of(lastPl);
@@ -233,16 +321,15 @@ public class MainWindow extends JFrame implements ControllerListener {
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 Graphics2D g2 = (Graphics2D) g.create();
-                java.awt.GradientPaint menuGrad = new java.awt.GradientPaint(
-                        0, 0, Theme.MENUBAR_BG_TOP,
-                        0, getHeight(), Theme.MENUBAR_BG_BOTTOM
-                );
-                g2.setPaint(menuGrad);
-                g2.fillRect(0, 0, getWidth(), getHeight());
+                g2.setColor(Theme.MENUBAR_BG_TOP);
+                g2.fillRect(Theme.ZERO, Theme.ZERO, getWidth(), getHeight());
                 g2.dispose();
             }
         };
-        menuBar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Theme.MENUBAR_BORDER));
+        menuBar.setBackground(Theme.MENUBAR_BG_TOP);
+        menuBar.setBorder(BorderFactory.createMatteBorder(
+                Theme.ZERO, Theme.ZERO, Theme.ONE, Theme.ZERO, Theme.MENUBAR_BORDER
+        ));
 
         // --- File Menu ---
         JMenu fileMenu = new JMenu("File");
@@ -276,7 +363,7 @@ public class MainWindow extends JFrame implements ControllerListener {
         playMenu.setForeground(Theme.MENUBAR_TEXT);
 
         JMenuItem playPauseItem = new JMenuItem("Play / Pause");
-        playPauseItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0));
+        playPauseItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, Theme.ZERO));
         playPauseItem.addActionListener(e -> controller.playPause());
         playMenu.add(playPauseItem);
 
@@ -285,12 +372,12 @@ public class MainWindow extends JFrame implements ControllerListener {
         playMenu.add(stopItem);
 
         JMenuItem prevItem = new JMenuItem("Previous");
-        prevItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_P, 0));
+        prevItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_P, Theme.ZERO));
         prevItem.addActionListener(e -> controller.previous());
         playMenu.add(prevItem);
 
         JMenuItem nextItem = new JMenuItem("Next");
-        nextItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, 0));
+        nextItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, Theme.ZERO));
         nextItem.addActionListener(e -> controller.next());
         playMenu.add(nextItem);
 
@@ -319,7 +406,7 @@ public class MainWindow extends JFrame implements ControllerListener {
 
         // Shuffle checkbox
         shuffleMenuItem = new JCheckBoxMenuItem("Shuffle", false);
-        shuffleMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, 0));
+        shuffleMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, Theme.ZERO));
         shuffleMenuItem.addActionListener(e -> controller.setShuffle(shuffleMenuItem.isSelected()));
         playMenu.add(shuffleMenuItem);
 
@@ -350,16 +437,16 @@ public class MainWindow extends JFrame implements ControllerListener {
         InputMap im = getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
         ActionMap am = getRootPane().getActionMap();
 
-        registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "playPause", controller::playPause);
-        registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, 0), "seekBack5", () -> controller.skip(-5));
-        registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0), "seekFwd5", () -> controller.skip(5));
-        registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_UP, 0), "volUp", () -> controller.setVolume(Math.min(1.0, controller.getMediaEngine().getVolume() + 0.05)));
-        registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0), "volDown", () -> controller.setVolume(Math.max(0.0, controller.getMediaEngine().getVolume() - 0.05)));
-        registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_M, 0), "mute", controller::toggleMute);
-        registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_N, 0), "next", controller::next);
-        registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_P, 0), "prev", controller::previous);
-        registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_S, 0), "shuffle", controller::toggleShuffle);
-        registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_R, 0), "repeat", controller::cycleRepeatMode);
+        registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, Theme.ZERO), "playPause", controller::playPause);
+        registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, Theme.ZERO), "seekBack5", () -> controller.skip(-Theme.SEEK_STEP_SECONDS));
+        registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, Theme.ZERO), "seekFwd5", () -> controller.skip(Theme.SEEK_STEP_SECONDS));
+        registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_UP, Theme.ZERO), "volUp", () -> controller.setVolume(Math.min(Theme.DOUBLE_ONE, controller.getMediaEngine().getVolume() + Theme.VOLUME_STEP)));
+        registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, Theme.ZERO), "volDown", () -> controller.setVolume(Math.max(Theme.DOUBLE_ZERO, controller.getMediaEngine().getVolume() - Theme.VOLUME_STEP)));
+        registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_M, Theme.ZERO), "mute", controller::toggleMute);
+        registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_N, Theme.ZERO), "next", controller::next);
+        registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_P, Theme.ZERO), "prev", controller::previous);
+        registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_S, Theme.ZERO), "shuffle", controller::toggleShuffle);
+        registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_R, Theme.ZERO), "repeat", controller::cycleRepeatMode);
         registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_O, KeyEvent.CTRL_DOWN_MASK), "openFileKey", this::handleOpenFile);
     }
 
@@ -389,7 +476,7 @@ public class MainWindow extends JFrame implements ControllerListener {
         int ret = chooser.showOpenDialog(this);
         if (ret == JFileChooser.APPROVE_OPTION) {
             File[] files = chooser.getSelectedFiles();
-            if (files != null && files.length > 0) {
+            if (files != null && files.length > Theme.ZERO) {
                 List<Path> paths = Arrays.stream(files).map(File::toPath).toList();
                 controller.openFiles(paths);
             }
@@ -447,9 +534,8 @@ public class MainWindow extends JFrame implements ControllerListener {
     private void showAboutDialog() {
         String message = """
                 RetroAmp98
-                Version 0.1.0
+                Now Playing Dark Edition
 
-                Windows Media Player 9 Series (XP Era) Styled Audio Player.
                 Built with Java Swing and JavaFX Media.
                 """;
         JOptionPane.showMessageDialog(this, message, "About RetroAmp98", JOptionPane.INFORMATION_MESSAGE);

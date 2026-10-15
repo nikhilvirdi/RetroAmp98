@@ -3,202 +3,131 @@ package io.github.nikhilvirdi.retroamp98.ui;
 import io.github.nikhilvirdi.retroamp98.engine.PlayerState;
 import io.github.nikhilvirdi.retroamp98.engine.TrackInfo;
 import io.github.nikhilvirdi.retroamp98.playlist.Track;
-import io.github.nikhilvirdi.retroamp98.util.TimeUtils;
 
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
-import java.awt.BorderLayout;
 import java.awt.Dimension;
-import java.awt.GradientPaint;
+import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.time.Duration;
 
 /**
- * Windows Media Player 9 Series status strip situated below the LCD display.
- * Features a glowing LED indicator, state status text, current track title, and duration counters.
+ * Track block in the Right Control Panel for RetroAmp98.
+ * Displays artist above in Theme.TEXT_MUTED and large bold title below in Theme.TEXT_PRIMARY,
+ * truncated with "..." when exceeding available width.
  */
 public class StatusStrip extends JPanel implements ControllerListener {
 
-    private final LedIndicator ledIndicator;
-    private final JLabel statusLabel;
-    private final JLabel trackLabel;
-    private final JLabel timeLabel;
+    private static final String DEFAULT_ARTIST = "RetroAmp98";
+    private static final String DEFAULT_TITLE = "No Track Loaded";
+    private static final String ELLIPSIS = "...";
+
+    private String currentArtist = DEFAULT_ARTIST;
+    private String currentTitle = DEFAULT_TITLE;
 
     public StatusStrip(PlayerController controller) {
-        setLayout(new BorderLayout(8, 0));
-        setPreferredSize(new Dimension(0, 24));
-        setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(1, 0, 1, 0, Theme.STATUS_BORDER),
-                BorderFactory.createEmptyBorder(2, 8, 2, 8)
-        ));
+        setOpaque(false);
+        setPreferredSize(new Dimension(Theme.THREE_HUNDRED, Theme.SIXTY_FOUR));
+        setMinimumSize(new Dimension(Theme.TWO_HUNDRED, Theme.FORTY_EIGHT));
 
-        // Left section: LED + State + Track Title
-        JPanel leftPanel = new JPanel();
-        leftPanel.setOpaque(false);
-        leftPanel.setLayout(new BoxLayout(leftPanel, BoxLayout.X_AXIS));
+        if (controller != null) {
+            controller.addListener(this);
+        }
+    }
 
-        ledIndicator = new LedIndicator();
-        statusLabel = new JLabel("Stopped");
-        statusLabel.setFont(Theme.FONT_STATUS_LCD);
-        statusLabel.setForeground(Theme.STATUS_LCD_TEXT);
-
-        trackLabel = new JLabel(" - Ready");
-        trackLabel.setFont(Theme.FONT_STATUS_LCD);
-        trackLabel.setForeground(Theme.STATUS_LCD_TEXT);
-
-        leftPanel.add(ledIndicator);
-        leftPanel.add(Box.createHorizontalStrut(6));
-        leftPanel.add(statusLabel);
-        leftPanel.add(trackLabel);
-
-        // Right section: Time counter
-        JPanel rightPanel = new JPanel();
-        rightPanel.setOpaque(false);
-        rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.X_AXIS));
-
-        timeLabel = new JLabel("00:00 / 00:00");
-        timeLabel.setFont(Theme.FONT_STATUS_LCD);
-        timeLabel.setForeground(Theme.STATUS_TIME_TEXT);
-
-        rightPanel.add(timeLabel);
-
-        add(leftPanel, BorderLayout.WEST);
-        add(rightPanel, BorderLayout.EAST);
-
-        controller.addListener(this);
+    public void setTrack(String artist, String title) {
+        this.currentArtist = (artist != null && !artist.isBlank()) ? artist : DEFAULT_ARTIST;
+        this.currentTitle = (title != null && !title.isBlank()) ? title : DEFAULT_TITLE;
+        repaint();
     }
 
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g.create();
-        int w = getWidth();
-        int h = getHeight();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-        // Dark metallic gradient bar
-        GradientPaint barGrad = new GradientPaint(
-                0, 0, Theme.STATUS_BG_TOP,
-                0, h, Theme.STATUS_BG_BOTTOM
-        );
-        g2.setPaint(barGrad);
-        g2.fillRect(0, 0, w, h);
+        int w = getWidth();
+        int maxTextWidth = Math.max(Theme.ZERO, w - Theme.FOUR);
+
+        // 1. Draw Artist above in Theme.TEXT_MUTED
+        g2.setFont(Theme.FONT_TRACK_ARTIST);
+        g2.setColor(Theme.TEXT_MUTED);
+        FontMetrics fmArtist = g2.getFontMetrics();
+        String displayArtist = truncate(currentArtist, maxTextWidth, fmArtist);
+        int artistY = fmArtist.getAscent() + Theme.TWO;
+        g2.drawString(displayArtist, Theme.ZERO, artistY);
+
+        // 2. Draw Title below in Theme.TEXT_PRIMARY (Large & Bold)
+        g2.setFont(Theme.FONT_TRACK_TITLE);
+        g2.setColor(Theme.TEXT_PRIMARY);
+        FontMetrics fmTitle = g2.getFontMetrics();
+        String displayTitle = truncate(currentTitle, maxTextWidth, fmTitle);
+        int titleY = artistY + fmTitle.getAscent() + Theme.SIX;
+        g2.drawString(displayTitle, Theme.ZERO, titleY);
+
         g2.dispose();
+    }
+
+    private String truncate(String text, int maxWidth, FontMetrics fm) {
+        if (text == null || text.isEmpty()) {
+            return "";
+        }
+        if (fm.stringWidth(text) <= maxWidth) {
+            return text;
+        }
+        int ellipsisWidth = fm.stringWidth(ELLIPSIS);
+        if (ellipsisWidth >= maxWidth) {
+            return ELLIPSIS;
+        }
+
+        int len = text.length();
+        while (len > Theme.ZERO && (fm.stringWidth(text.substring(Theme.ZERO, len)) + ellipsisWidth) > maxWidth) {
+            len--;
+        }
+        return text.substring(Theme.ZERO, len) + ELLIPSIS;
     }
 
     @Override
     public void onStateChanged(PlayerState state) {
-        ledIndicator.setState(state);
-        switch (state) {
-            case PLAYING -> statusLabel.setText("Playing");
-            case PAUSED -> statusLabel.setText("Paused");
-            case LOADING -> statusLabel.setText("Loading");
-            case STOPPED -> {
-                statusLabel.setText("Stopped");
-                timeLabel.setText("00:00 / 00:00");
-            }
-            case ERROR -> statusLabel.setText("Error");
-            case IDLE -> {
-                statusLabel.setText("Ready");
-                timeLabel.setText("00:00 / 00:00");
-            }
+        if (state == PlayerState.IDLE && (currentTitle == null || currentTitle.equals(DEFAULT_TITLE))) {
+            setTrack(DEFAULT_ARTIST, DEFAULT_TITLE);
         }
     }
 
     @Override
     public void onPositionChanged(Duration position, Duration duration) {
-        String pos = TimeUtils.formatDuration(position);
-        String dur = (duration != null && !duration.isZero()) ? TimeUtils.formatDuration(duration) : "--:--";
-        timeLabel.setText(pos + " / " + dur);
+        // Handled by progress bar
     }
 
     @Override
     public void onDurationKnown(Duration duration) {
-        String dur = TimeUtils.formatDuration(duration);
-        timeLabel.setText("00:00 / " + dur);
+        // Handled by progress bar
     }
 
     @Override
     public void onTrackChanged(Track track, int index) {
         if (track != null) {
-            trackLabel.setText(" - " + track.getTitle());
+            String art = track.getArtist();
+            String tit = track.getTitle();
+            setTrack(art, tit);
         } else {
-            trackLabel.setText(" - Ready");
-            timeLabel.setText("00:00 / 00:00");
+            setTrack(DEFAULT_ARTIST, DEFAULT_TITLE);
         }
     }
 
     @Override
     public void onTrackInfoReady(TrackInfo trackInfo) {
-        if (trackInfo != null && trackInfo.getDisplayTitle() != null) {
-            trackLabel.setText(" - " + trackInfo.getDisplayTitle());
-        }
-    }
-
-    /**
-     * Circular glowing hardware status LED.
-     */
-    private static class LedIndicator extends JComponent {
-        private PlayerState state = PlayerState.IDLE;
-
-        LedIndicator() {
-            setPreferredSize(new Dimension(10, 10));
-            setMinimumSize(new Dimension(10, 10));
-            setMaximumSize(new Dimension(10, 10));
-        }
-
-        void setState(PlayerState state) {
-            this.state = state;
-            repaint();
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            java.awt.Color ledColor;
-            boolean glow = false;
-
-            switch (state) {
-                case PLAYING -> {
-                    ledColor = Theme.LED_PLAYING;
-                    glow = true;
-                }
-                case PAUSED -> {
-                    ledColor = Theme.LED_PAUSED;
-                    glow = true;
-                }
-                case LOADING -> ledColor = Theme.LED_LOADING;
-                case ERROR -> ledColor = Theme.LED_ERROR;
-                default -> ledColor = Theme.LED_STOPPED;
+        if (trackInfo != null) {
+            String art = trackInfo.artist();
+            String tit = trackInfo.title();
+            if (tit == null || tit.isBlank()) {
+                tit = trackInfo.getDisplayTitle();
             }
-
-            int w = getWidth();
-            int h = getHeight();
-            int d = Math.min(w, h) - 2;
-            int x = (w - d) / 2;
-            int y = (h - d) / 2;
-
-            if (glow) {
-                g2.setColor(Theme.STATUS_LED_GLOW);
-                g2.fillOval(x - 2, y - 2, d + 4, d + 4);
-            }
-
-            g2.setColor(ledColor);
-            g2.fillOval(x, y, d, d);
-
-            if (glow) {
-                g2.setColor(Theme.STATUS_LED_HIGHLIGHT);
-                g2.fillOval(x + 2, y + 1, d / 3, d / 3);
-            }
-
-            g2.dispose();
+            setTrack(art, tit);
         }
     }
 }
