@@ -11,12 +11,12 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 /**
- * Helper utility for importing supported media files from directory folders.
+ * Helper utility for importing supported audio files from directory folders.
  */
 public final class FolderImporter {
 
     public static final Set<String> SUPPORTED_EXTENSIONS = Set.of(
-            "mp3", "wav", "aac", "m4a", "mp4"
+            "mp3", "wav", "m4a"
     );
 
     private FolderImporter() {
@@ -24,7 +24,7 @@ public final class FolderImporter {
     }
 
     /**
-     * Scans a folder for supported audio and video media files, returning them sorted by file name.
+     * Scans a folder for supported audio media files, returning them sorted by file name.
      *
      * @param folder directory path to scan
      * @return sorted list of matching file paths
@@ -46,7 +46,7 @@ public final class FolderImporter {
     }
 
     /**
-     * Scans a folder and returns a list of Tracks created from the supported files.
+     * Scans a folder and returns a list of Tracks created from the supported audio files.
      *
      * @param folder directory path to scan
      * @return sorted list of Track instances

@@ -18,26 +18,11 @@
         <exec.mainClass>io.github.nikhilvirdi.retroamp98.RetroAmpApp</exec.mainClass>
     </properties>
 
-
     <dependencies>
-        <!-- JavaFX Controls -->
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-controls</artifactId>
-            <version>${javafx.version}</version>
-        </dependency>
-
-        <!-- JavaFX Media for audio/video playback -->
+        <!-- JavaFX Media for audio playback -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-media</artifactId>
-            <version>${javafx.version}</version>
-        </dependency>
-
-        <!-- JavaFX Swing interop (JFXPanel) -->
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-swing</artifactId>
             <version>${javafx.version}</version>
         </dependency>
 
@@ -78,66 +63,6 @@
                     <mainClass>${exec.mainClass}</mainClass>
                 </configuration>
             </plugin>
-
-            <!-- Maven Shade Plugin for building an executable Fat/Uber JAR -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>3.5.2</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <shadedArtifactAttached>false</shadedArtifactAttached>
-                            <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>io.github.nikhilvirdi.retroamp98.Launcher</mainClass>
-                                </transformer>
-                            </transformers>
-                            <filters>
-                                <filter>
-                                    <artifact>*:*</artifact>
-                                    <excludes>
-                                        <exclude>META-INF/*.SF</exclude>
-                                        <exclude>META-INF/*.DSA</exclude>
-                                        <exclude>META-INF/*.RSA</exclude>
-                                    </excludes>
-                                </filter>
-                            </filters>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
-
-    <!--
-        ========================================================================
-        Native Application Packaging with JDK 21+ jpackage:
-        ========================================================================
-        1. Build the standalone executable fat JAR:
-           mvn clean package
-
-        2. Create a self-contained Windows application image:
-           jpackage -type app-image \
-                    -input target \
-                    -name RetroAmp98 \
-                    -main-jar retroamp98-0.1.0-SNAPSHOT.jar \
-                    -main-class io.github.nikhilvirdi.retroamp98.Launcher \
-                    -dest target/dist
-
-        3. Create a native Windows MSI installer:
-           jpackage -type msi \
-                    -input target \
-                    -name RetroAmp98 \
-                    -main-jar retroamp98-0.1.0-SNAPSHOT.jar \
-                    -main-class io.github.nikhilvirdi.retroamp98.Launcher \
-                    -win-menu \
-                    -win-shortcut \
-                    -dest target/dist
-        ========================================================================
-    -->
 </project>

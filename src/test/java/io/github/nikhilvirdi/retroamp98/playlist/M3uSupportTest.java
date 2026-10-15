@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests covering M3U/M3U8 round-trip serialization, missing file reporting,
- * and folder import helper.
+ * and folder import helper for audio files.
  */
 class M3uSupportTest {
 
@@ -81,7 +81,7 @@ class M3uSupportTest {
     }
 
     @Test
-    @DisplayName("Folder importer: imports only supported audio/video formats sorted alphabetically")
+    @DisplayName("Folder importer: imports only supported audio formats (mp3, wav, m4a) sorted alphabetically")
     void testFolderImport(@TempDir Path tempDir) throws IOException {
         // Create mixed set of supported and unsupported files
         Files.createFile(tempDir.resolve("zeta.mp3"));
@@ -94,12 +94,10 @@ class M3uSupportTest {
 
         List<Track> imported = FolderImporter.importFolder(tempDir);
 
-        // Expect 5 supported files, sorted case-insensitively
-        assertEquals(5, imported.size());
+        // Expect 3 supported audio files, sorted case-insensitively
+        assertEquals(3, imported.size());
         assertEquals("alpha", imported.get(0).getTitle());
-        assertEquals("beta", imported.get(1).getTitle());
-        assertEquals("delta", imported.get(2).getTitle());
-        assertEquals("gamma", imported.get(3).getTitle());
-        assertEquals("zeta", imported.get(4).getTitle());
+        assertEquals("delta", imported.get(1).getTitle());
+        assertEquals("zeta", imported.get(2).getTitle());
     }
 }

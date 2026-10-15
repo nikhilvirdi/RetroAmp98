@@ -1,12 +1,10 @@
 package io.github.nikhilvirdi.retroamp98.engine;
 
-import java.awt.Image;
-
 /**
- * Immutable metadata record for currently loaded media track.
+ * Immutable metadata record for currently loaded media track (title and artist only).
  * Decoupled completely from JavaFX types.
  */
-public record TrackInfo(String title, String artist, String album, Image coverImage) {
+public record TrackInfo(String title, String artist) {
 
     /**
      * Returns "Artist - Title" if both exist, title if only title exists, or null.

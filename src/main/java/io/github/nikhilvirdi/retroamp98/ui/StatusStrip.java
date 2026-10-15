@@ -1,6 +1,7 @@
 package io.github.nikhilvirdi.retroamp98.ui;
 
 import io.github.nikhilvirdi.retroamp98.engine.PlayerState;
+import io.github.nikhilvirdi.retroamp98.engine.TrackInfo;
 import io.github.nikhilvirdi.retroamp98.playlist.Track;
 import io.github.nikhilvirdi.retroamp98.util.TimeUtils;
 
@@ -19,7 +20,7 @@ import java.awt.RenderingHints;
 import java.time.Duration;
 
 /**
- * Windows Media Player 9 Series status strip situated directly below the video viewport.
+ * Windows Media Player 9 Series status strip situated below the LCD display.
  * Features a glowing LED indicator, state status text, current track title, and duration counters.
  */
 public class StatusStrip extends JPanel implements ControllerListener {
@@ -27,9 +28,6 @@ public class StatusStrip extends JPanel implements ControllerListener {
     private final LedIndicator ledIndicator;
     private final JLabel statusLabel;
     private final JLabel trackLabel;
-    private final JLabel loopLabel;
-    private final JLabel speedLabel;
-    private final JLabel sleepLabel;
     private final JLabel timeLabel;
 
     public StatusStrip(PlayerController controller) {
@@ -54,35 +52,20 @@ public class StatusStrip extends JPanel implements ControllerListener {
         trackLabel.setFont(Theme.FONT_STATUS_LCD);
         trackLabel.setForeground(Theme.STATUS_LCD_TEXT);
 
-        loopLabel = new JLabel("");
-        loopLabel.setFont(Theme.FONT_STATUS_LCD);
-        loopLabel.setForeground(Theme.STATUS_LCD_TEXT);
-
         leftPanel.add(ledIndicator);
         leftPanel.add(Box.createHorizontalStrut(6));
         leftPanel.add(statusLabel);
         leftPanel.add(trackLabel);
-        leftPanel.add(loopLabel);
 
-        // Right section: Speed + Sleep + Time counter
+        // Right section: Time counter
         JPanel rightPanel = new JPanel();
         rightPanel.setOpaque(false);
         rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.X_AXIS));
-
-        speedLabel = new JLabel("1.0x ");
-        speedLabel.setFont(Theme.FONT_STATUS_LCD);
-        speedLabel.setForeground(Theme.STATUS_LCD_DIM);
-
-        sleepLabel = new JLabel("");
-        sleepLabel.setFont(Theme.FONT_STATUS_LCD);
-        sleepLabel.setForeground(Theme.STATUS_LCD_DIM);
 
         timeLabel = new JLabel("00:00 / 00:00");
         timeLabel.setFont(Theme.FONT_STATUS_LCD);
         timeLabel.setForeground(Theme.STATUS_TIME_TEXT);
 
-        rightPanel.add(sleepLabel);
-        rightPanel.add(speedLabel);
         rightPanel.add(timeLabel);
 
         add(leftPanel, BorderLayout.WEST);
@@ -120,71 +103,56 @@ public class StatusStrip extends JPanel implements ControllerListener {
                 timeLabel.setText("00:00 / 00:00");
             }
             case ERROR -> statusLabel.setText("Error");
-            case IDLE -> statusLabel.setText("Ready");
+            case IDLE -> {
+                statusLabel.setText("Ready");
+                timeLabel.setText("00:00 / 00:00");
+            }
         }
     }
 
     @Override
     public void onPositionChanged(Duration position, Duration duration) {
         String pos = TimeUtils.formatDuration(position);
-        String dur = (duration != null && !duration.isZero()) ? TimeUtils.formatDuration(duration) : "00:00";
+        String dur = (duration != null && !duration.isZero()) ? TimeUtils.formatDuration(duration) : "--:--";
         timeLabel.setText(pos + " / " + dur);
     }
 
     @Override
     public void onDurationKnown(Duration duration) {
-        timeLabel.setText("00:00 / " + TimeUtils.formatDuration(duration));
+        String dur = TimeUtils.formatDuration(duration);
+        timeLabel.setText("00:00 / " + dur);
     }
 
     @Override
     public void onTrackChanged(Track track, int index) {
         if (track != null) {
-            trackLabel.setText(" - " + (index + 1) + ". " + track.getTitle());
+            trackLabel.setText(" - " + track.getTitle());
         } else {
-            trackLabel.setText(" - No Track Loaded");
+            trackLabel.setText(" - Ready");
             timeLabel.setText("00:00 / 00:00");
         }
     }
 
     @Override
-    public void onRateChanged(double rate) {
-        if (Math.abs(rate - 1.0) < 0.001) {
-            speedLabel.setText("1.0x ");
-        } else {
-            speedLabel.setText(String.format("%.2fx ", rate));
-        }
-    }
-
-    @Override
-    public void onTrackInfoReady(io.github.nikhilvirdi.retroamp98.engine.TrackInfo trackInfo) {
+    public void onTrackInfoReady(TrackInfo trackInfo) {
         if (trackInfo != null && trackInfo.getDisplayTitle() != null) {
             trackLabel.setText(" - " + trackInfo.getDisplayTitle());
         }
     }
 
-    @Override
-    public void onLoopChanged(String loopIndicator) {
-        loopLabel.setText(loopIndicator == null || loopIndicator.isEmpty() ? "" : " " + loopIndicator);
-    }
-
-    @Override
-    public void onSleepTimerTick(String sleepRemaining) {
-        sleepLabel.setText(sleepRemaining == null || sleepRemaining.isEmpty() ? "" : sleepRemaining + "  ");
-    }
-
     /**
-     * Small glowing square LED indicator showing active playback status.
+     * Circular glowing hardware status LED.
      */
     private static class LedIndicator extends JComponent {
-        private PlayerState state = PlayerState.STOPPED;
+        private PlayerState state = PlayerState.IDLE;
 
-        public LedIndicator() {
+        LedIndicator() {
             setPreferredSize(new Dimension(10, 10));
             setMinimumSize(new Dimension(10, 10));
             setMaximumSize(new Dimension(10, 10));
         }
 
-        public void setState(PlayerState state) {
+        void setState(PlayerState state) {
             this.state = state;
             repaint();
         }
@@ -194,35 +162,41 @@ public class StatusStrip extends JPanel implements ControllerListener {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-            int size = 7;
-            int x = (getWidth() - size) / 2;
-            int y = (getHeight() - size) / 2;
+            java.awt.Color ledColor;
+            boolean glow = false;
 
-            java.awt.Color ledColor = switch (state) {
-                case PLAYING -> Theme.LED_PLAYING;
-                case PAUSED -> Theme.LED_PAUSED;
-                case LOADING -> Theme.LED_LOADING;
-                case ERROR -> Theme.LED_ERROR;
-                case STOPPED, IDLE -> Theme.LED_STOPPED;
-            };
-
-            // Glow aura when playing
-            if (state == PlayerState.PLAYING) {
-                g2.setColor(Theme.STATUS_LED_GLOW);
-                g2.fillRoundRect(x - 2, y - 2, size + 4, size + 4, 3, 3);
+            switch (state) {
+                case PLAYING -> {
+                    ledColor = Theme.LED_PLAYING;
+                    glow = true;
+                }
+                case PAUSED -> {
+                    ledColor = Theme.LED_PAUSED;
+                    glow = true;
+                }
+                case LOADING -> ledColor = Theme.LED_LOADING;
+                case ERROR -> ledColor = Theme.LED_ERROR;
+                default -> ledColor = Theme.LED_STOPPED;
             }
 
-            // Square LED
+            int w = getWidth();
+            int h = getHeight();
+            int d = Math.min(w, h) - 2;
+            int x = (w - d) / 2;
+            int y = (h - d) / 2;
+
+            if (glow) {
+                g2.setColor(Theme.STATUS_LED_GLOW);
+                g2.fillOval(x - 2, y - 2, d + 4, d + 4);
+            }
+
             g2.setColor(ledColor);
-            g2.fillRect(x, y, size, size);
+            g2.fillOval(x, y, d, d);
 
-            // Specular highlight dot
-            g2.setColor(Theme.STATUS_LED_HIGHLIGHT);
-            g2.fillRect(x, y, 2, 2);
-
-            // Dark border
-            g2.setColor(Theme.STATUS_BG_TOP);
-            g2.drawRect(x, y, size, size);
+            if (glow) {
+                g2.setColor(Theme.STATUS_LED_HIGHLIGHT);
+                g2.fillOval(x + 2, y + 1, d / 3, d / 3);
+            }
 
             g2.dispose();
         }

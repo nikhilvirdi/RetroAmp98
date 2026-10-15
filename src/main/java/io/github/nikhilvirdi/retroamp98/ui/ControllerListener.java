@@ -1,6 +1,7 @@
 package io.github.nikhilvirdi.retroamp98.ui;
 
 import io.github.nikhilvirdi.retroamp98.engine.PlayerState;
+import io.github.nikhilvirdi.retroamp98.engine.TrackInfo;
 import io.github.nikhilvirdi.retroamp98.playlist.RepeatMode;
 import io.github.nikhilvirdi.retroamp98.playlist.Track;
 
@@ -19,11 +20,5 @@ public interface ControllerListener {
     default void onRepeatModeChanged(RepeatMode mode) {}
     default void onShuffleChanged(boolean shuffle) {}
     default void onPlaylistUpdated() {}
-    default void onVideoSizeKnown(int width, int height) {}
-    default void onHasVideoChanged(boolean hasVideo) {}
-    default void onRateChanged(double rate) {}
-    default void onTrackInfoReady(io.github.nikhilvirdi.retroamp98.engine.TrackInfo trackInfo) {}
-    default void onSpectrumData(float[] magnitudes) {}
-    default void onLoopChanged(String loopIndicator) {}
-    default void onSleepTimerTick(String sleepRemaining) {}
+    default void onTrackInfoReady(TrackInfo trackInfo) {}
 }

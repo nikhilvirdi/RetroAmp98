@@ -42,31 +42,9 @@ public interface EngineListener {
     void onError(String message);
 
     /**
-     * Invoked when video dimensions become known.
+     * Invoked when media metadata (ID3 tags) is resolved.
      *
-     * @param width  native video width in pixels
-     * @param height native video height in pixels
-     */
-    default void onVideoSizeKnown(int width, int height) {}
-
-    /**
-     * Invoked when media changes between video and audio-only.
-     *
-     * @param hasVideo true if loaded media contains an active video track
-     */
-    default void onHasVideoChanged(boolean hasVideo) {}
-
-    /**
-     * Invoked when media metadata (ID3 tags / cover art) is resolved.
-     *
-     * @param trackInfo resolved metadata record
+     * @param trackInfo resolved metadata record containing title and artist
      */
     default void onTrackInfoReady(TrackInfo trackInfo) {}
-
-    /**
-     * Invoked periodically during playback with audio spectrum magnitudes.
-     *
-     * @param magnitudes array of band magnitudes in dB (typically -60dB to 0dB)
-     */
-    default void onSpectrumData(float[] magnitudes) {}
 }

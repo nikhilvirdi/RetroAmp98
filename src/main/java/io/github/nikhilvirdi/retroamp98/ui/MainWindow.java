@@ -43,22 +43,19 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Windows Media Player 9 Series ("Corona" XP era) styled main application window.
- * Features silver-blue metallic body, top menu bar, central stretching video area,
- * dark status strip, collapsible playlist, glossy bottom docked controls, drag-and-drop,
- * settings persistence, and borderless fullscreen playback.
+ * Windows Media Player 9 Series ("Corona" XP era) styled main audio player window.
+ * Features silver-blue metallic body, top menu bar, central LCD display,
+ * dark status strip, collapsible playlist, and glossy bottom docked controls.
  */
 public class MainWindow extends JFrame implements ControllerListener {
 
     private final PlayerController controller;
     private final SettingsManager settingsManager;
 
-    private JPanel videoContainer;
-    private VideoPanel videoPanel;
+    private LcdPanel lcdPanel;
     private StatusStrip statusStrip;
     private PlaylistPanel playlistPanel;
     private TransportBar transportBar;
-    private FullscreenWindow fullscreenWindow;
 
     // Menu items
     private JRadioButtonMenuItem repeatOffItem;
@@ -66,8 +63,6 @@ public class MainWindow extends JFrame implements ControllerListener {
     private JRadioButtonMenuItem repeatAllItem;
     private JCheckBoxMenuItem shuffleMenuItem;
     private JCheckBoxMenuItem playlistViewItem;
-    private JCheckBoxMenuItem visualizerMenuItem;
-    private JCheckBoxMenuItem resizeToVideoItem;
 
     public MainWindow(PlayerController controller) {
         this(controller, new SettingsManager());
@@ -89,8 +84,8 @@ public class MainWindow extends JFrame implements ControllerListener {
         });
 
         setResizable(true);
-        setMinimumSize(new Dimension(560, 480));
-        setPreferredSize(new Dimension(740, 540));
+        setMinimumSize(new Dimension(480, 300));
+        setPreferredSize(new Dimension(600, 420));
 
         // Root container with WMP 9 silver-blue metallic body gradient
         JPanel rootPanel = new JPanel(new BorderLayout(0, 0)) {
@@ -118,28 +113,26 @@ public class MainWindow extends JFrame implements ControllerListener {
             }
         };
 
-        // Center workspace: Video area + Status strip + Collapsible Playlist
+        // Center workspace: LCD display + Status strip + Collapsible Playlist
         JPanel centerWorkspace = new JPanel(new BorderLayout(4, 0));
         centerWorkspace.setOpaque(false);
         centerWorkspace.setBorder(BorderFactory.createEmptyBorder(6, 6, 2, 6));
 
-        // Video container holding VideoPanel and StatusStrip directly below it
-        videoContainer = new JPanel(new BorderLayout(0, 2));
-        videoContainer.setOpaque(false);
+        // Display container holding LcdPanel and StatusStrip directly below it
+        JPanel displayContainer = new JPanel(new BorderLayout(0, 2));
+        displayContainer.setOpaque(false);
 
-        videoPanel = new VideoPanel(controller);
-        videoPanel.setOnDoubleClickListener(this::toggleFullscreen);
-
+        lcdPanel = new LcdPanel(controller);
         statusStrip = new StatusStrip(controller);
 
-        videoContainer.add(videoPanel, BorderLayout.CENTER);
-        videoContainer.add(statusStrip, BorderLayout.SOUTH);
+        displayContainer.add(lcdPanel, BorderLayout.CENTER);
+        displayContainer.add(statusStrip, BorderLayout.SOUTH);
 
-        centerWorkspace.add(videoContainer, BorderLayout.CENTER);
+        centerWorkspace.add(displayContainer, BorderLayout.CENTER);
 
-        // Collapsible Playlist Panel on the side (starts collapsed so video has full width)
+        // Collapsible Playlist Panel on the side (starts collapsed)
         playlistPanel = new PlaylistPanel(controller);
-        playlistPanel.setPreferredSize(new Dimension(250, 200));
+        playlistPanel.setPreferredSize(new Dimension(240, 180));
         playlistPanel.setVisible(false);
         centerWorkspace.add(playlistPanel, BorderLayout.EAST);
 
@@ -166,11 +159,6 @@ public class MainWindow extends JFrame implements ControllerListener {
         setJMenuBar(buildMenuBar());
         setContentPane(rootPanel);
 
-        // Install Drag & Drop onto main window, video panel, and playlist panel
-        MediaDropHandler.install(rootPanel, controller);
-        MediaDropHandler.install(videoPanel, controller);
-        MediaDropHandler.install(playlistPanel, controller);
-
         // Global keyboard navigation
         setupGlobalKeyBindings();
 
@@ -180,14 +168,6 @@ public class MainWindow extends JFrame implements ControllerListener {
         applySettings();
 
         controller.addListener(this);
-    }
-
-    public JPanel getVideoContainer() {
-        return videoContainer;
-    }
-
-    public VideoPanel getVideoPanel() {
-        return videoPanel;
     }
 
     public void setPlaylistVisible(boolean visible) {
@@ -202,38 +182,6 @@ public class MainWindow extends JFrame implements ControllerListener {
         getContentPane().repaint();
     }
 
-    public void toggleFullscreen() {
-        if (fullscreenWindow != null) {
-            exitFullscreen();
-        } else {
-            enterFullscreen();
-        }
-    }
-
-    public void enterFullscreen() {
-        if (fullscreenWindow != null) return;
-
-        videoContainer.remove(videoPanel);
-        videoContainer.revalidate();
-        videoContainer.repaint();
-
-        fullscreenWindow = new FullscreenWindow(this, controller, videoPanel, () -> {
-            videoContainer.add(videoPanel, BorderLayout.CENTER);
-            videoPanel.setOnDoubleClickListener(this::toggleFullscreen);
-            videoContainer.revalidate();
-            videoContainer.repaint();
-            fullscreenWindow = null;
-            requestFocusInWindow();
-        });
-        fullscreenWindow.setVisible(true);
-    }
-
-    public void exitFullscreen() {
-        if (fullscreenWindow != null) {
-            fullscreenWindow.exitFullscreen();
-        }
-    }
-
     private void handleExit() {
         saveSettings();
         controller.stop();
@@ -246,37 +194,15 @@ public class MainWindow extends JFrame implements ControllerListener {
 
         controller.setVolume(settingsManager.getVolume());
         controller.setMuted(settingsManager.isMuted());
-        controller.setRate(settingsManager.getSpeed());
         controller.setRepeatMode(settingsManager.getRepeatMode());
         controller.setShuffle(settingsManager.isShuffle());
 
-        controller.getMediaEngine().setEqualizerEnabled(settingsManager.isEqualizerEnabled());
-        double[] eqBands = settingsManager.getEqualizerBands();
-        for (int i = 0; i < 10; i++) {
-            controller.getMediaEngine().setEqualizerBand(i, eqBands[i]);
-        }
-
-        if (videoPanel != null) {
-            videoPanel.setVisualizerEnabled(settingsManager.isVisualizerEnabled());
-        }
-        if (visualizerMenuItem != null) {
-            visualizerMenuItem.setSelected(settingsManager.isVisualizerEnabled());
-        }
-        if (resizeToVideoItem != null) {
-            resizeToVideoItem.setSelected(settingsManager.isResizeToVideo());
-        }
-
-        if (settingsManager.getWindowWidth() >= 560 && settingsManager.getWindowHeight() >= 480) {
+        if (settingsManager.getWindowWidth() >= 480 && settingsManager.getWindowHeight() >= 300) {
             setSize(settingsManager.getWindowWidth(), settingsManager.getWindowHeight());
         } else {
-            setSize(740, 540);
+            setSize(600, 420);
         }
-
-        if (settingsManager.getWindowX() >= 0 && settingsManager.getWindowY() >= 0) {
-            setLocation(settingsManager.getWindowX(), settingsManager.getWindowY());
-        } else {
-            setLocationRelativeTo(null);
-        }
+        setLocationRelativeTo(null);
 
         // Last playlist: reload without auto-play if file exists
         String lastPl = settingsManager.getLastPlaylistPath();
@@ -293,24 +219,11 @@ public class MainWindow extends JFrame implements ControllerListener {
 
     private void saveSettings() {
         settingsManager.setVolume(controller.getMediaEngine().getVolume());
-        settingsManager.setMuted(false);
-        settingsManager.setSpeed(controller.getRate());
+        settingsManager.setMuted(controller.getMediaEngine().isMuted());
         settingsManager.setRepeatMode(controller.getPlaylistManager().getRepeatMode());
         settingsManager.setShuffle(controller.getPlaylistManager().isShuffle());
-        settingsManager.setEqualizerEnabled(controller.getMediaEngine().isEqualizerEnabled());
-        double[] eqBands = new double[10];
-        for (int i = 0; i < 10; i++) {
-            eqBands[i] = controller.getMediaEngine().getEqualizerBand(i);
-        }
-        settingsManager.setEqualizerBands(eqBands);
-        settingsManager.setVisualizerEnabled(visualizerMenuItem != null && visualizerMenuItem.isSelected());
-        settingsManager.setResizeToVideo(resizeToVideoItem != null && resizeToVideoItem.isSelected());
-        if (fullscreenWindow == null) {
-            settingsManager.setWindowX(getX());
-            settingsManager.setWindowY(getY());
-            settingsManager.setWindowWidth(getWidth());
-            settingsManager.setWindowHeight(getHeight());
-        }
+        settingsManager.setWindowWidth(getWidth());
+        settingsManager.setWindowHeight(getHeight());
         settingsManager.save();
     }
 
@@ -341,7 +254,6 @@ public class MainWindow extends JFrame implements ControllerListener {
         fileMenu.add(openFileItem);
 
         JMenuItem openFolderItem = new JMenuItem("Open Folder...");
-        openFolderItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, KeyEvent.CTRL_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK));
         openFolderItem.addActionListener(e -> handleOpenFolder());
         fileMenu.add(openFolderItem);
 
@@ -382,73 +294,6 @@ public class MainWindow extends JFrame implements ControllerListener {
         nextItem.addActionListener(e -> controller.next());
         playMenu.add(nextItem);
 
-        JMenuItem skipBackItem = new JMenuItem("Skip Back 10s");
-        skipBackItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, KeyEvent.SHIFT_DOWN_MASK));
-        skipBackItem.addActionListener(e -> controller.skip(-10));
-        playMenu.add(skipBackItem);
-
-        JMenuItem skipFwdItem = new JMenuItem("Skip Forward 10s");
-        skipFwdItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, KeyEvent.SHIFT_DOWN_MASK));
-        skipFwdItem.addActionListener(e -> controller.skip(10));
-        playMenu.add(skipFwdItem);
-
-        playMenu.addSeparator();
-
-        // A-B Loop
-        JMenuItem setAItem = new JMenuItem("Set Loop Point A");
-        setAItem.addActionListener(e -> controller.setLoopA());
-        playMenu.add(setAItem);
-
-        JMenuItem setBItem = new JMenuItem("Set Loop Point B");
-        setBItem.addActionListener(e -> controller.setLoopB());
-        playMenu.add(setBItem);
-
-        JMenuItem clearLoopItem = new JMenuItem("Clear Loop");
-        clearLoopItem.addActionListener(e -> controller.clearLoop());
-        playMenu.add(clearLoopItem);
-
-        playMenu.addSeparator();
-
-        // Sleep Timer submenu
-        JMenu sleepMenu = new JMenu("Sleep Timer");
-        ButtonGroup sleepGroup = new ButtonGroup();
-
-        JRadioButtonMenuItem sleepOff = new JRadioButtonMenuItem("Off", true);
-        sleepOff.addActionListener(e -> controller.setSleepTimerMinutes(0));
-        sleepGroup.add(sleepOff);
-        sleepMenu.add(sleepOff);
-
-        int[] sleepMins = {15, 30, 45, 60};
-        for (int m : sleepMins) {
-            JRadioButtonMenuItem item = new JRadioButtonMenuItem(m + " min", false);
-            item.addActionListener(e -> controller.setSleepTimerMinutes(m));
-            sleepGroup.add(item);
-            sleepMenu.add(item);
-        }
-
-        JRadioButtonMenuItem sleepEnd = new JRadioButtonMenuItem("End of current track", false);
-        sleepEnd.addActionListener(e -> controller.setSleepAtEndOfTrack(true));
-        sleepGroup.add(sleepEnd);
-        sleepMenu.add(sleepEnd);
-
-        playMenu.add(sleepMenu);
-
-        playMenu.addSeparator();
-
-        // Speed submenu
-        JMenu speedMenu = new JMenu("Speed");
-        ButtonGroup speedGroup = new ButtonGroup();
-        double[] speeds = {0.5, 0.75, 1.0, 1.25, 1.5, 2.0};
-        String[] speedLabels = {"0.5x", "0.75x", "1x", "1.25x", "1.5x", "2x"};
-        for (int i = 0; i < speeds.length; i++) {
-            double s = speeds[i];
-            JRadioButtonMenuItem item = new JRadioButtonMenuItem(speedLabels[i], Math.abs(s - 1.0) < 0.001);
-            item.addActionListener(e -> controller.setRate(s));
-            speedGroup.add(item);
-            speedMenu.add(item);
-        }
-        playMenu.add(speedMenu);
-
         playMenu.addSeparator();
 
         // Repeat submenu
@@ -482,28 +327,9 @@ public class MainWindow extends JFrame implements ControllerListener {
         JMenu viewMenu = new JMenu("View");
         viewMenu.setForeground(Theme.MENUBAR_TEXT);
 
-        JMenuItem fullscreenItem = new JMenuItem("Fullscreen");
-        fullscreenItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F11, 0));
-        fullscreenItem.addActionListener(e -> enterFullscreen());
-        viewMenu.add(fullscreenItem);
-
         playlistViewItem = new JCheckBoxMenuItem("Playlist", false);
         playlistViewItem.addActionListener(e -> setPlaylistVisible(playlistViewItem.isSelected()));
         viewMenu.add(playlistViewItem);
-
-        resizeToVideoItem = new JCheckBoxMenuItem("Resize Window to Video", true);
-        viewMenu.add(resizeToVideoItem);
-
-        visualizerMenuItem = new JCheckBoxMenuItem("Visualizer", true);
-        visualizerMenuItem.addActionListener(e -> videoPanel.setVisualizerEnabled(visualizerMenuItem.isSelected()));
-        viewMenu.add(visualizerMenuItem);
-
-        JMenuItem equalizerItem = new JMenuItem("Equalizer...");
-        equalizerItem.addActionListener(e -> {
-            EqualizerDialog eqDialog = new EqualizerDialog(this, controller);
-            eqDialog.setVisible(true);
-        });
-        viewMenu.add(equalizerItem);
 
         // --- Help Menu ---
         JMenu helpMenu = new JMenu("Help");
@@ -527,8 +353,6 @@ public class MainWindow extends JFrame implements ControllerListener {
         registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "playPause", controller::playPause);
         registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, 0), "seekBack5", () -> controller.skip(-5));
         registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0), "seekFwd5", () -> controller.skip(5));
-        registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, KeyEvent.SHIFT_DOWN_MASK), "seekBack10", () -> controller.skip(-10));
-        registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, KeyEvent.SHIFT_DOWN_MASK), "seekFwd10", () -> controller.skip(10));
         registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_UP, 0), "volUp", () -> controller.setVolume(Math.min(1.0, controller.getMediaEngine().getVolume() + 0.05)));
         registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0), "volDown", () -> controller.setVolume(Math.max(0.0, controller.getMediaEngine().getVolume() - 0.05)));
         registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_M, 0), "mute", controller::toggleMute);
@@ -536,10 +360,7 @@ public class MainWindow extends JFrame implements ControllerListener {
         registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_P, 0), "prev", controller::previous);
         registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_S, 0), "shuffle", controller::toggleShuffle);
         registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_R, 0), "repeat", controller::cycleRepeatMode);
-        registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_F, 0), "fsF", this::toggleFullscreen);
-        registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_F11, 0), "fsF11", this::toggleFullscreen);
         registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_O, KeyEvent.CTRL_DOWN_MASK), "openFileKey", this::handleOpenFile);
-        registerKey(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_O, KeyEvent.CTRL_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK), "openFolderKey", this::handleOpenFolder);
     }
 
     private void registerKey(InputMap im, ActionMap am, KeyStroke stroke, String name, Runnable action) {
@@ -558,11 +379,11 @@ public class MainWindow extends JFrame implements ControllerListener {
 
     private void handleOpenFile() {
         JFileChooser chooser = new JFileChooser();
-        chooser.setDialogTitle("Open Audio/Video File");
+        chooser.setDialogTitle("Open Audio File");
         chooser.setMultiSelectionEnabled(true);
         chooser.setFileFilter(new FileNameExtensionFilter(
-                "Supported Media (*.mp3, *.wav, *.aac, *.m4a, *.mp4)",
-                "mp3", "wav", "aac", "m4a", "mp4"
+                "Supported Audio (*.mp3, *.wav, *.m4a)",
+                "mp3", "wav", "m4a"
         ));
 
         int ret = chooser.showOpenDialog(this);
@@ -577,7 +398,7 @@ public class MainWindow extends JFrame implements ControllerListener {
 
     private void handleOpenFolder() {
         JFileChooser chooser = new JFileChooser();
-        chooser.setDialogTitle("Open Media Folder");
+        chooser.setDialogTitle("Open Music Folder");
         chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 
         int ret = chooser.showOpenDialog(this);
@@ -628,8 +449,8 @@ public class MainWindow extends JFrame implements ControllerListener {
                 RetroAmp98
                 Version 0.1.0
 
-                Windows Media Player 9 Series (XP Era) Styled Media Player.
-                Built with Java Swing and JavaFX.
+                Windows Media Player 9 Series (XP Era) Styled Audio Player.
+                Built with Java Swing and JavaFX Media.
                 """;
         JOptionPane.showMessageDialog(this, message, "About RetroAmp98", JOptionPane.INFORMATION_MESSAGE);
     }
@@ -646,45 +467,5 @@ public class MainWindow extends JFrame implements ControllerListener {
     @Override
     public void onShuffleChanged(boolean shuffle) {
         shuffleMenuItem.setSelected(shuffle);
-    }
-
-    @Override
-    public void onVideoSizeKnown(int width, int height) {
-        if (resizeToVideoItem != null && resizeToVideoItem.isSelected() && width > 0 && height > 0 && fullscreenWindow == null) {
-            resizeWindowToVideo(width, height);
-        }
-    }
-
-    private void resizeWindowToVideo(int videoWidth, int videoHeight) {
-        java.awt.GraphicsConfiguration gc = getGraphicsConfiguration();
-        java.awt.Rectangle screenBounds = (gc != null)
-                ? gc.getBounds()
-                : java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
-        java.awt.Insets screenInsets = (gc != null)
-                ? java.awt.Toolkit.getDefaultToolkit().getScreenInsets(gc)
-                : new java.awt.Insets(0, 0, 0, 0);
-
-        int maxW = screenBounds.width - screenInsets.left - screenInsets.right;
-        int maxH = screenBounds.height - screenInsets.top - screenInsets.bottom;
-
-        int extraHeight = getHeight() - videoPanel.getHeight();
-        int extraWidth = getWidth() - videoPanel.getWidth();
-        if (extraHeight <= 0) extraHeight = 160;
-        if (extraWidth <= 0) extraWidth = 20;
-
-        double maxVidW = maxW * 0.85;
-        double maxVidH = (maxH - extraHeight) * 0.85;
-
-        double scale = Math.min(1.0, Math.min(maxVidW / videoWidth, maxVidH / videoHeight));
-        int finalVidW = Math.max(360, (int) Math.round(videoWidth * scale));
-        int finalVidH = Math.max(200, (int) Math.round(videoHeight * scale));
-
-        int targetWinW = Math.min(maxW, finalVidW + extraWidth);
-        int targetWinH = Math.min(maxH, finalVidH + extraHeight);
-
-        setSize(targetWinW, targetWinH);
-        setLocationRelativeTo(null);
-        revalidate();
-        repaint();
     }
 }

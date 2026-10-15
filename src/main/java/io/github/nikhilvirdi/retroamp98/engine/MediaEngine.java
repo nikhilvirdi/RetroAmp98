@@ -56,22 +56,15 @@ public interface MediaEngine {
      */
     void setMuted(boolean muted);
 
-    /**
-     * Sets playback rate/speed.
-     *
-     * @param rate playback multiplier clamped between 0.5 (half speed) and 2.0 (double speed)
-     */
-    void setRate(double rate);
-
-    // --- Queries ---
+    // --- State Queries ---
 
     /**
-     * Returns current playback state.
+     * Returns current state of the player engine.
      */
     PlayerState getState();
 
     /**
-     * Returns current playback position.
+     * Returns current playback position, or Duration.ZERO if no media loaded.
      */
     Duration getPosition();
 
@@ -89,45 +82,6 @@ public interface MediaEngine {
      * Returns true if audio is muted.
      */
     boolean isMuted();
-
-    /**
-     * Returns current playback rate between 0.5 and 2.0.
-     */
-    double getRate();
-
-    /**
-     * Returns the plain Swing component surface used for rendering video.
-     * Contains no JavaFX types in its public interface.
-     */
-    javax.swing.JComponent getVideoComponent();
-
-    /**
-     * Enables or disables the 10-band audio equalizer.
-     *
-     * @param enabled true to activate equalizer filters
-     */
-    void setEqualizerEnabled(boolean enabled);
-
-    /**
-     * Returns true if the equalizer is currently active.
-     */
-    boolean isEqualizerEnabled();
-
-    /**
-     * Sets the gain for a specific equalizer band.
-     *
-     * @param index  band index from 0 to 9
-     * @param gainDb gain in decibels, clamped to safe range
-     */
-    void setEqualizerBand(int index, double gainDb);
-
-    /**
-     * Returns the current gain for a specific equalizer band.
-     *
-     * @param index band index from 0 to 9
-     * @return gain in decibels
-     */
-    double getEqualizerBand(int index);
 
     // --- Listeners ---
 
