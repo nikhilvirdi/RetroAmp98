@@ -2,7 +2,7 @@
 
 A retro arcade-style music player. Pick a few songs, hit play, and listen like it's 1998.
 
-<img alt="RetroAmp98 logo" src="https://github.com/user-attachments/assets/ec909c2a-1f77-4912-a40c-082d89ae8a09" width="200" height="50">
+<img alt="RetroAmp98 logo" src="https://github.com/user-attachments/assets/42771171-7d39-4d65-a98d-09b81ad0a8a8" width="200" height="50">
 
 ### About RetroAmp98
 
