@@ -2,11 +2,11 @@
 
 A retro arcade-style music player. Pick a few songs, hit play, and listen like it's 1998.
 
-\<picture>   \<source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/42771171-7d39-4d65-a98d-09b81ad0a8a8">   \<source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/ec909c2a-1f77-4912-a40c-082d89ae8a09">   \<img alt="RetroAmp98 logo" src="https://github.com/user-attachments/assets/ec909c2a-1f77-4912-a40c-082d89ae8a09" width="200" height="50"> \</picture>
+\<picture>   \<source media="(prefers-color-scheme: dark)" srcset="[https://github.com/user-attachments/assets/42771171-7d39-4d65-a98d-09b81ad0a8a8](https://github.com/user-attachments/assets/42771171-7d39-4d65-a98d-09b81ad0a8a8)">   \<source media="(prefers-color-scheme: light)" srcset="[https://github.com/user-attachments/assets/ec909c2a-1f77-4912-a40c-082d89ae8a09](https://github.com/user-attachments/assets/ec909c2a-1f77-4912-a40c-082d89ae8a09)">   \<img alt="RetroAmp98 logo" src="[https://github.com/user-attachments/assets/ec909c2a-1f77-4912-a40c-082d89ae8a09](https://github.com/user-attachments/assets/ec909c2a-1f77-4912-a40c-082d89ae8a09)" width="200" height="50"> \</picture>
 
 ### About RetroAmp98
 
-**RetroAmp98** is a mini desktop music player I originally built for my **CSE 3rd semester Object-Oriented Programming with Java coursework**. It plays audio files from your own machine (MP3, WAV, M4A), with the usual playback controls, playlists, shuffle, repeat, and a recently played history.
+**RetroAmp98** is a mini desktop music player I originally built with a friend for our **CSE 3rd semester Object-Oriented Programming with Java coursework**. It plays audio files from your own machine (MP3, WAV, M4A), with the usual playback controls, playlists, shuffle, repeat, and a recently played history.
 
 The original version used Swing and took inspiration from Windows Media Player 8/9. I later rebuilt the interface in JavaFX, replacing the old Windows-style panels with a pixel-art arcade look: bitmap fonts, a black-and-blue color scheme, orange selection highlights, album artwork, and a small audio spectrum that actually responds to the music. The idea was to keep the feel of an old computer music player without just copying one.
 
@@ -79,7 +79,7 @@ Space toggles playback, the arrow keys handle seeking and volume, `Ctrl+O` opens
 | Java 21      | Core language, player logic, and application controllers                |
 | JavaFX       | Native desktop interface and audio playback                             |
 | FXML         | Interface layouts and components                                        |
-| JavaFX CSS   | Retro styling, typography, and control states                          |
+| JavaFX CSS   | Retro styling, typography, and control states                           |
 | Jaudiotagger | Embedded audio metadata and album-art extraction                        |
 | Maven        | Build and dependency management                                         |
 | JUnit 5      | Tests for playback logic, playlists, metadata, history, and persistence |
