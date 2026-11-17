@@ -5,10 +5,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-/**
- * Manages the active playlist, current playback index, and play order traversal.
- * Completely decoupled from the audio playback engine (does not touch MediaEngine).
- */
 public class PlaylistManager {
 
     private final List<PlaylistListener> listeners = new CopyOnWriteArrayList<>();
@@ -27,11 +23,6 @@ public class PlaylistManager {
         this.playOrderStrategy = new SequentialOrder();
     }
 
-    // --- Navigation Queries and Commands ---
-
-    /**
-     * Returns the currently active track, or null if no track is selected / playlist is empty.
-     */
     public Track current() {
         if (currentIndex < 0 || currentIndex >= playlist.size()) {
             return null;
@@ -39,10 +30,6 @@ public class PlaylistManager {
         return playlist.get(currentIndex);
     }
 
-    /**
-     * Advances to the next track according to the active strategy and repeat mode.
-     * Returns the new track, or null if no next track exists.
-     */
     public Track next() {
         if (playlist.isEmpty()) {
             return null;
@@ -57,10 +44,6 @@ public class PlaylistManager {
         return track;
     }
 
-    /**
-     * Moves to the previous track according to the active strategy and repeat mode.
-     * Returns the previous track, or null if no previous track exists.
-     */
     public Track previous() {
         if (playlist.isEmpty()) {
             return null;
@@ -75,9 +58,6 @@ public class PlaylistManager {
         return track;
     }
 
-    /**
-     * Jumps directly to a specific track index in the playlist.
-     */
     public Track jumpTo(int index) {
         if (index >= 0 && index < playlist.size()) {
             this.currentIndex = index;
@@ -89,9 +69,6 @@ public class PlaylistManager {
         return null;
     }
 
-    /**
-     * Checks if a next track is available from the current position.
-     */
     public boolean hasNext() {
         if (playlist.isEmpty()) {
             return false;
@@ -99,17 +76,12 @@ public class PlaylistManager {
         return playOrderStrategy.hasNext(currentIndex, playlist.size(), repeatMode);
     }
 
-    /**
-     * Checks if a previous track is available from the current position.
-     */
     public boolean hasPrevious() {
         if (playlist.isEmpty()) {
             return false;
         }
         return playOrderStrategy.hasPrevious(currentIndex, playlist.size(), repeatMode);
     }
-
-    // --- Playlist Access & Mutation Delegation ---
 
     public Playlist getPlaylist() {
         return playlist;
@@ -140,12 +112,15 @@ public class PlaylistManager {
 
     public void addTracks(Collection<Track> tracks) {
         if (tracks == null || tracks.isEmpty()) return;
+        List<Track> added = tracks.stream().filter(Objects::nonNull).toList();
+        if (added.isEmpty()) return;
         int startIdx = playlist.size();
-        playlist.addAll(tracks);
-        for (int i = 0; i < tracks.size(); i++) {
-            playOrderStrategy.onTrackAdded(startIdx + i, playlist.size());
+        for (Track track : added) {
+            int index = playlist.size();
+            playlist.add(track);
+            playOrderStrategy.onTrackAdded(index, playlist.size());
         }
-        notifyTracksAdded(startIdx, List.copyOf(tracks));
+        notifyTracksAdded(startIdx, added);
     }
 
     public Track removeTrack(int index) {
@@ -166,6 +141,7 @@ public class PlaylistManager {
             }
         }
 
+        if (index == oldIndex) playOrderStrategy.onIndexSelected(currentIndex, playlist.size());
         notifyTrackRemoved(index, removed);
         if (oldIndex != currentIndex || index == oldIndex) {
             notifyCurrentIndexChanged(currentIndex, current());
@@ -203,8 +179,6 @@ public class PlaylistManager {
         notifyCurrentIndexChanged(-1, null);
     }
 
-    // --- Mode & Strategy Configuration ---
-
     public RepeatMode getRepeatMode() {
         return repeatMode;
     }
@@ -233,8 +207,6 @@ public class PlaylistManager {
             setPlayOrderStrategy(new SequentialOrder());
         }
     }
-
-    // --- Listener Management ---
 
     public void addListener(PlaylistListener listener) {
         if (listener != null) {

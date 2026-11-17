@@ -1,10 +1,5 @@
 package io.github.nikhilvirdi.retroamp98.playlist;
 
-/**
- * Sequential playback order traversal strategy.
- * Advances linearly through track indices 0..size-1 with wrap-around under RepeatMode.ALL
- * and current index retention under RepeatMode.ONE.
- */
 public class SequentialOrder implements PlayOrderStrategy {
 
     @Override
@@ -21,7 +16,6 @@ public class SequentialOrder implements PlayOrderStrategy {
         if (repeatMode == RepeatMode.ALL) {
             return (currentIndex + 1) % playlistSize;
         }
-        // RepeatMode.OFF
         return (currentIndex < playlistSize - 1) ? currentIndex + 1 : -1;
     }
 
@@ -39,7 +33,6 @@ public class SequentialOrder implements PlayOrderStrategy {
         if (repeatMode == RepeatMode.ALL) {
             return (currentIndex - 1 + playlistSize) % playlistSize;
         }
-        // RepeatMode.OFF
         return (currentIndex > 0) ? currentIndex - 1 : -1;
     }
 

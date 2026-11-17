@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.Slider?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.shape.Rectangle?>
+<?import javafx.scene.text.Text?>
+<?import javafx.scene.text.TextFlow?>
+<?import io.github.nikhilvirdi.retroamp98.ui.PixelSpectrum?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="io.github.nikhilvirdi.retroamp98.ui.PlayerViewController"
+      prefWidth="1086" prefHeight="1448" snapToPixel="false" styleClass="retroamp-view">
+    <StackPane styleClass="header">
+        <Pane styleClass="logo" accessibleText="RetroAmp98" mouseTransparent="true" StackPane.alignment="TOP_LEFT">
+            <TextFlow styleClass="wordmark, logo-outline">
+                <Text text="RetroAmp" styleClass="logo-white" />
+                <Text text="98" styleClass="logo-lime" />
+            </TextFlow>
+            <TextFlow styleClass="wordmark, logo-cutout">
+                <Text text="RetroAmp" styleClass="logo-white" />
+                <Text text="98" styleClass="logo-lime" />
+            </TextFlow>
+            <TextFlow fx:id="logoText" styleClass="wordmark, logo-face">
+                <Text fx:id="logoPrefix" text="RetroAm" styleClass="logo-white" />
+                <Text text="p" styleClass="logo-white" />
+                <Text text="98" styleClass="logo-lime" />
+            </TextFlow>
+            <!-- Both edges stop at the prefix's native advance, before the p. -->
+            <Rectangle x="-2" y="95" width="${logoPrefix.layoutBounds.width + 2}" height="8" styleClass="logo-white" />
+            <Rectangle x="-2" y="106" width="${logoPrefix.layoutBounds.width + 2}" height="3" styleClass="logo-white" />
+        </Pane>
+        <Button fx:id="libraryMenu" text="≡" styleClass="header-menu-button"
+                accessibleText="Library actions" StackPane.alignment="TOP_RIGHT">
+            <StackPane.margin><Insets top="30" /></StackPane.margin>
+        </Button>
+    </StackPane>
+
+    <VBox styleClass="now-playing">
+        <HBox styleClass="now-playing-main">
+            <VBox fx:id="songInfo" styleClass="song-info">
+                <Label fx:id="songTitle" styleClass="song-title" text="NO TRACK LOADED"
+                       wrapText="true" textOverrun="WORD_ELLIPSIS" />
+                <VBox styleClass="song-details">
+                    <Label fx:id="artist" styleClass="artist" />
+                    <Label fx:id="timing" styleClass="timing, accent-text" text="00:00 / --:--" />
+                    <HBox styleClass="song-detail">
+                        <Label text="ALBUM:" minWidth="-Infinity" />
+                        <Label fx:id="album" styleClass="accent-text" minWidth="0" HBox.hgrow="ALWAYS" />
+                    </HBox>
+                    <HBox styleClass="song-detail">
+                        <Label text="TRACK:" minWidth="-Infinity" />
+                        <Label fx:id="trackNumber" styleClass="accent-text" />
+                    </HBox>
+                    <ScrollPane fx:id="descriptionScroll" styleClass="description-scroll" fitToWidth="true" pannable="true"
+                                hbarPolicy="NEVER" vbarPolicy="NEVER" accessibleText="Song description. Scroll to read more.">
+                        <Text fx:id="description" styleClass="description" wrappingWidth="510"
+                              text="Press Ctrl+O to open audio files." />
+                    </ScrollPane>
+                </VBox>
+            </VBox>
+            <StackPane styleClass="artwork-slot" alignment="TOP_CENTER" snapToPixel="false">
+                <HBox.margin><Insets top="27" /></HBox.margin>
+                <StackPane fx:id="artworkFrame" styleClass="album-frame" snapToPixel="false">
+                    <ImageView fx:id="artwork" fitWidth="477" fitHeight="463" smooth="false" preserveRatio="true"
+                               accessibleText="Album artwork unavailable" />
+                </StackPane>
+            </StackPane>
+        </HBox>
+
+        <HBox styleClass="progress-band">
+            <VBox.margin><Insets top="24" /></VBox.margin>
+            <Region fx:id="progressState" styleClass="glyph, progress-state" />
+            <Label fx:id="elapsedTime" styleClass="progress-time" text="00:00" />
+            <StackPane styleClass="progress-sample">
+                <Region fx:id="progressFill" styleClass="progress-fill" StackPane.alignment="CENTER_LEFT" />
+                <Slider fx:id="seekSlider" styleClass="seek-slider" min="0" max="1"
+                        blockIncrement="0.01" accessibleText="Playback position" />
+            </StackPane>
+            <Label fx:id="totalTime" styleClass="progress-time, progress-total" text="--:--" />
+            <PixelSpectrum fx:id="spectrum" styleClass="spectrum">
+                <HBox.margin><Insets left="14" /></HBox.margin>
+            </PixelSpectrum>
+        </HBox>
+    </VBox>
+
+    <VBox styleClass="track-list">
+        <HBox styleClass="list-heading">
+            <Region styleClass="glyph, list-marker" />
+            <Button fx:id="viewSwitch" text="PLAYLIST" styleClass="list-switch" accessibleText="Switch between Playlist and Recently Played" />
+            <Region HBox.hgrow="ALWAYS" />
+            <Label fx:id="trackCount" styleClass="track-count" />
+        </HBox>
+        <ListView fx:id="recentTracks" styleClass="recent-tracks"
+                  fixedCellSize="43.4" VBox.vgrow="ALWAYS"
+                  focusTraversable="true"
+                  accessibleText="Playlist" />
+    </VBox>
+
+    <HBox styleClass="footer">
+        <HBox styleClass="transport-group" snapToPixel="false">
+            <Button fx:id="previousButton" snapToPixel="false" text="PREV" styleClass="arcade-button, footer-item" HBox.hgrow="ALWAYS">
+                <graphic>
+                    <Region styleClass="glyph, footer-glyph, previous" />
+                </graphic>
+            </Button>
+            <Button fx:id="playButton" snapToPixel="false" text="PLAY" styleClass="arcade-button, footer-item" HBox.hgrow="ALWAYS">
+                <graphic>
+                    <Region styleClass="glyph, footer-glyph, play" />
+                </graphic>
+            </Button>
+            <Button fx:id="pauseButton" snapToPixel="false" text="PAUSE" styleClass="arcade-button, footer-item" HBox.hgrow="ALWAYS">
+                <graphic>
+                    <Region styleClass="glyph, footer-glyph, pause" />
+                </graphic>
+            </Button>
+            <Button fx:id="stopButton" snapToPixel="false" text="STOP" styleClass="arcade-button, footer-item" HBox.hgrow="ALWAYS">
+                <graphic>
+                    <Region styleClass="glyph, footer-glyph, stop" />
+                </graphic>
+            </Button>
+            <Button fx:id="nextButton" snapToPixel="false" text="NEXT" styleClass="arcade-button, footer-item" HBox.hgrow="ALWAYS">
+                <graphic>
+                    <Region styleClass="glyph, footer-glyph, next" />
+                </graphic>
+            </Button>
+        </HBox>
+        <Region styleClass="footer-separator" />
+        <HBox styleClass="volume-group" snapToPixel="false">
+            <Button fx:id="volumeDownButton" snapToPixel="false" text="VOL-" styleClass="arcade-button, footer-item" HBox.hgrow="ALWAYS">
+                <graphic>
+                    <Region styleClass="glyph, footer-glyph, volume-down" />
+                </graphic>
+            </Button>
+            <Button fx:id="volumeUpButton" snapToPixel="false" text="VOL+" styleClass="arcade-button, footer-item" HBox.hgrow="ALWAYS">
+                <graphic>
+                    <Region styleClass="glyph, footer-glyph, volume-up" />
+                </graphic>
+            </Button>
+            <Button fx:id="muteButton" snapToPixel="false" text="MUTE" styleClass="arcade-button, footer-item" HBox.hgrow="ALWAYS">
+                <graphic>
+                    <StackPane styleClass="footer-glyph">
+                        <Region styleClass="glyph, mute-speaker" />
+                        <Region styleClass="glyph, mute-cross" />
+                </StackPane>
+                </graphic>
+            </Button>
+        </HBox>
+        <Region styleClass="footer-separator" />
+        <HBox styleClass="mode-group" snapToPixel="false">
+            <Button fx:id="shuffleButton" snapToPixel="false" text="SHUFFLE" styleClass="arcade-button, footer-item" HBox.hgrow="ALWAYS">
+                <graphic>
+                    <Region styleClass="glyph, footer-glyph, shuffle" />
+                </graphic>
+            </Button>
+            <Button fx:id="repeatButton" snapToPixel="false" text="REPEAT" styleClass="arcade-button, footer-item" HBox.hgrow="ALWAYS">
+                <graphic>
+                    <Region styleClass="glyph, footer-glyph, repeat" />
+                </graphic>
+            </Button>
+        </HBox>
+    </HBox>
+</VBox>

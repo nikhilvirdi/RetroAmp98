@@ -11,16 +11,34 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Tests covering M3U/M3U8 round-trip serialization, missing file reporting,
- * and folder import helper for audio files.
- */
 class M3uSupportTest {
+
+    @Test
+    void failedEncodingPreservesThePreviousPlaylist(@TempDir Path directory) throws IOException {
+        Path file = directory.resolve("saved.m3u");
+        byte[] previous = "#EXTM3U\nprevious.wav\n".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        Files.write(file, previous);
+        Playlist playlist = new Playlist(List.of(new Track(directory.resolve("song.wav"), "Invalid \uD800")));
+        assertThrows(IOException.class, () -> M3uSupport.save(playlist, file));
+        assertArrayEquals(previous, Files.readAllBytes(file));
+        try (var files = Files.list(directory)) { assertEquals(List.of(file), files.toList()); }
+    }
+
+    @Test
+    void malformedPathsDirectoriesAndDuplicatesDoNotBreakLoading(@TempDir Path directory) throws IOException {
+        Path song = Files.createFile(directory.resolve("song.mp3"));
+        Files.createDirectory(directory.resolve("folder"));
+        Path m3u = Files.writeString(directory.resolve("bad.m3u"), "#EXTM3U\nbad\u0000path\nsong.mp3\n./song.mp3\nfolder\nmissing.mp3\n");
+        var result = M3uSupport.loadWithReport(m3u);
+        assertEquals(1, result.playlist().size());
+        assertEquals(song, result.playlist().get(0).getPath());
+        assertEquals(2, result.missingFiles().size());
+        assertThrows(IOException.class, () -> M3uSupport.save(result.playlist(), song));
+    }
 
     @Test
     @DisplayName("M3U Round-trip: save and load playlist preserving tracks, relative paths, and titles")
     void testM3uRoundTrip(@TempDir Path tempDir) throws IOException {
-        // Create actual physical media files in temp directory
         Path audioDir = tempDir.resolve("music");
         Files.createDirectories(audioDir);
 
@@ -35,11 +53,9 @@ class M3uSupportTest {
 
         Path m3uFile = tempDir.resolve("playlist.m3u");
 
-        // 1. Save
         M3uSupport.save(original, m3uFile);
         assertTrue(Files.exists(m3uFile), "M3U file must be created");
 
-        // 2. Load
         Playlist loaded = M3uSupport.load(m3uFile);
         assertNotNull(loaded);
         assertEquals(3, loaded.size(), "All 3 tracks should be loaded");
@@ -83,7 +99,6 @@ class M3uSupportTest {
     @Test
     @DisplayName("Folder importer: imports only supported audio formats (mp3, wav, m4a) sorted alphabetically")
     void testFolderImport(@TempDir Path tempDir) throws IOException {
-        // Create mixed set of supported and unsupported files
         Files.createFile(tempDir.resolve("zeta.mp3"));
         Files.createFile(tempDir.resolve("alpha.wav"));
         Files.createFile(tempDir.resolve("beta.mp4"));
@@ -94,7 +109,6 @@ class M3uSupportTest {
 
         List<Track> imported = FolderImporter.importFolder(tempDir);
 
-        // Expect 3 supported audio files, sorted case-insensitively
         assertEquals(3, imported.size());
         assertEquals("alpha", imported.get(0).getTitle());
         assertEquals("delta", imported.get(1).getTitle());

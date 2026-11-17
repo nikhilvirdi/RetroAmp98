@@ -1,0 +1,446 @@
+@import "glyphs.css";
+
+@font-face {
+    font-family: "Departure Mono";
+    src: url("../fonts/DepartureMono-Regular.otf");
+}
+
+@font-face {
+    font-family: "Pixel Operator 8";
+    font-weight: bold;
+    src: url("../fonts/PixelOperator8-Bold.ttf");
+}
+
+@font-face {
+    font-family: "Handjet";
+    font-weight: bold;
+    src: url("../fonts/Handjet-Bold.woff");
+}
+
+.root {
+    -amp-background: #000000;
+    -amp-surface: #0b0d15;
+    -amp-navy: #303458;
+    -amp-navy-middle: #191c33;
+    -amp-navy-end: #07080d;
+    -amp-text: #ffffff;
+    -amp-muted: #b9bbc4;
+    -amp-accent: #4b51fa;
+    -amp-progress: #565ef9;
+    -amp-border: #c6c4c1;
+    -amp-divider: #797e98;
+    -amp-heading: #914115;
+    -amp-selection: #a1460e;
+    -amp-badge: #595d64;
+    -amp-active-badge: #5068fa;
+    -amp-transport: #a0b9fa;
+    -amp-green: #65c25d;
+    -amp-yellow: #fad15a;
+    -amp-red: #ed4c4f;
+    -amp-hover: derive(-amp-surface, 45%);
+    -fx-font-family: "Monospaced";
+    -fx-font-size: 33px;
+}
+
+.retroamp-view { -fx-font-family: "Departure Mono"; }
+
+.viewport, .retroamp-view {
+    -fx-background-color: -amp-background;
+}
+
+.retroamp-view {
+    -fx-font-smoothing-type: gray;
+}
+
+.retroamp-view > * {
+    -fx-min-height: -fx-pref-height;
+    -fx-max-height: -fx-pref-height;
+}
+
+.retroamp-view .label {
+    -fx-text-fill: -amp-text;
+}
+
+.header {
+    -fx-pref-height: 156px;
+    -fx-padding: 0 32px;
+    -fx-background-color: linear-gradient(to bottom, -amp-navy, -amp-navy-middle 53%, -amp-navy-end);
+}
+
+.header .logo { -fx-pref-height: 112px; }
+
+.header .wordmark {
+    -fx-font-family: "Handjet";
+    -fx-font-weight: bold;
+    -fx-font-size: 100px;
+    -fx-font-smoothing-type: gray;
+}
+.header .logo-white { -fx-fill: #ffffff; }
+.header .logo-lime { -fx-fill: #c0ff70; }
+.header .logo-outline .logo-white { -fx-stroke: #ffffff; }
+.header .logo-outline .logo-lime { -fx-stroke: #c0ff70; }
+/* A clean text face preserves the pixel interiors over the two centered outline strokes. */
+.header .logo-outline Text { -fx-stroke-width: 10px; -fx-stroke-type: centered; }
+.header .logo-cutout Text { -fx-stroke: #000000; -fx-stroke-width: 5px; -fx-stroke-type: centered; }
+
+.header-menu-button {
+    -fx-font-family: "Departure Mono";
+    -fx-font-size: 52px;
+    -fx-text-fill: -amp-text;
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+    -fx-padding: 0;
+    -fx-min-width: 64px;
+    -fx-pref-width: 64px;
+    -fx-max-width: 64px;
+    -fx-min-height: 64px;
+    -fx-pref-height: 64px;
+    -fx-max-height: 64px;
+    -fx-cursor: hand;
+}
+.header-menu-button:hover, .header-menu-button:focused { -fx-text-fill: -amp-accent; }
+
+.now-playing {
+    -fx-pref-height: 605px;
+    -fx-padding: 14px 25px 0 33px;
+}
+
+.now-playing-main {
+    -fx-pref-height: 494px;
+    -fx-min-height: 494px;
+    -fx-max-height: 494px;
+    -fx-alignment: top-left;
+    -fx-spacing: 10px;
+}
+
+.song-info {
+    -fx-pref-width: 536px;
+    -fx-min-width: 536px;
+    -fx-max-width: 536px;
+    -fx-padding: 0;
+}
+
+.song-title {
+    -fx-font-family: "Pixel Operator 8";
+    -fx-font-size: 38px;
+    -fx-font-weight: bold;
+    -fx-pref-height: 92px;
+    -fx-min-height: 92px;
+    -fx-max-height: 92px;
+    -fx-max-width: infinity;
+}
+
+.song-title, .song-details .label, .track-title, .track-duration, .footer-item .label {
+    -fx-font-smoothing-type: gray;
+}
+
+.retroamp-view .song-title, .retroamp-view .accent-text {
+    -fx-text-fill: -amp-accent;
+}
+
+.song-details {
+    -fx-padding: 0 0 0 6px;
+    -fx-font-size: 30px;
+}
+
+.song-details .artist { -fx-font-size: 36px; }
+.song-details .timing { -fx-font-size: 29px; }
+
+.song-details .label {
+    -fx-pref-height: 39px;
+    -fx-min-height: 39px;
+    -fx-max-height: 39px;
+}
+
+.song-detail {
+    -fx-spacing: 12px;
+    -fx-alignment: center-left;
+}
+
+.description {
+    -fx-fill: -amp-text;
+    -fx-font-size: 27px;
+    -fx-line-spacing: -5px;
+    -fx-translate-y: 2px;
+}
+
+.description-scroll {
+    -fx-pref-height: 246px;
+    -fx-min-height: 246px;
+    -fx-max-height: 246px;
+    -fx-padding: 0;
+    -fx-background-insets: 0;
+    -fx-background-color: -amp-background;
+    -fx-border-width: 0;
+}
+.description-scroll > .viewport { -fx-background-color: -amp-background; }
+
+.artwork-slot {
+    -fx-pref-width: 481px;
+    -fx-min-width: 481px;
+    -fx-max-width: 481px;
+    -fx-pref-height: 467px;
+    -fx-min-height: 467px;
+    -fx-max-height: 467px;
+}
+
+.album-frame {
+    -fx-border-color: -amp-border;
+    -fx-border-width: 2px;
+}
+
+.progress-band {
+    -fx-pref-height: 48px;
+    -fx-padding: 0 12px 0 9px;
+    -fx-spacing: 20px;
+    -fx-alignment: center-left;
+}
+
+.progress-time {
+    -fx-pref-width: 88px;
+    -fx-min-width: 88px;
+    -fx-max-width: 88px;
+    -fx-font-size: 27.5px;
+}
+
+.progress-total {
+    -fx-padding: 0 0 0 4px;
+    -fx-pref-width: 92px;
+    -fx-min-width: 92px;
+    -fx-max-width: 92px;
+}
+
+.progress-sample {
+    -fx-pref-width: 496px;
+    -fx-min-width: 496px;
+    -fx-pref-height: 20px;
+    -fx-min-height: 20px;
+    -fx-max-height: 20px;
+    -fx-padding: 0 2px;
+    -fx-border-color: -amp-border;
+    -fx-border-width: 2px;
+    -fx-alignment: center-left;
+}
+
+.progress-fill {
+    -fx-pref-width: 0;
+    -fx-pref-height: 10px;
+    -fx-max-height: 10px;
+    -fx-background-color: -amp-progress;
+}
+
+.seek-slider {
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+    -fx-min-height: 0;
+    -fx-opacity: 1;
+}
+
+.seek-slider .track {
+    -fx-background-color: transparent;
+    -fx-pref-height: 20px;
+}
+
+.seek-slider .thumb {
+    -fx-pref-width: 13px;
+    -fx-pref-height: 26px;
+    -fx-background-color: -amp-progress;
+    -fx-background-radius: 0;
+    -fx-background-insets: 0;
+    -fx-border-color: -amp-text;
+    -fx-border-width: 2px;
+    -fx-padding: 0;
+}
+
+.recent-tracks .placeholder .label {
+    -fx-text-fill: -amp-muted;
+}
+
+.footer .footer-item:active {
+    -fx-border-color: transparent transparent -amp-accent transparent;
+    -fx-border-width: 0 0 2px 0;
+}
+
+.track-list {
+    -fx-pref-height: 544px;
+    -fx-padding: 0 14px;
+}
+
+.list-heading {
+    -fx-pref-height: 52px;
+    -fx-padding: 0 10px 0 20px;
+    -fx-spacing: 24px;
+    -fx-alignment: center-left;
+    -fx-background-color: -amp-heading;
+}
+
+.viewport:import-drag .list-heading, .retroamp-view:import-drag .list-heading {
+    -fx-background-color: -amp-selection;
+}
+.viewport:import-drag .list-marker, .retroamp-view:import-drag .list-marker {
+    -fx-background-color: -amp-accent;
+}
+
+.track-count {
+    -fx-font-size: 28px;
+}
+
+.list-switch {
+    -fx-font-family: "Departure Mono";
+    -fx-font-size: 33px;
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+    -fx-background-radius: 0;
+    -fx-border-width: 0;
+    -fx-text-fill: -amp-text;
+    -fx-cursor: hand;
+}
+
+.list-switch:hover, .list-switch:focused { -fx-text-fill: -amp-accent; }
+.library-actions {
+    -fx-font-family: "Departure Mono";
+    -fx-font-size: 13px;
+    -fx-background-color: -amp-background;
+    -fx-effect: null;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+    -fx-border-color: -amp-heading;
+    -fx-border-width: 1px;
+    -fx-border-radius: 0;
+    -fx-padding: 2px;
+}
+.library-actions .menu-item { -fx-padding: 2px 8px; }
+.library-actions .menu-item .label {
+    -fx-font-family: "Departure Mono";
+    -fx-font-size: 13px;
+    -fx-text-fill: -amp-text;
+    -fx-padding: 0;
+}
+.library-actions .menu-item:focused { -fx-background-color: -amp-selection; }
+.library-actions .menu-item:disabled { -fx-opacity: 0.45; }
+.library-actions .separator-menu-item { -fx-padding: 3px 4px; }
+.library-actions .separator { -fx-padding: 0; }
+.library-actions .separator .line {
+    -fx-border-color: -amp-heading transparent transparent transparent;
+    -fx-border-width: 1px 0 0;
+}
+
+.recent-tracks {
+    -fx-padding: 16px 5px 0;
+    -fx-background-color: -amp-background;
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+}
+
+.recent-tracks .list-cell {
+    -fx-padding: 0;
+    -fx-background-color: -amp-background;
+    -fx-background-insets: 0;
+    -fx-text-fill: -amp-text;
+    -fx-content-display: graphic-only;
+}
+
+.recent-tracks .list-cell:filled:hover { -fx-background-color: -amp-hover; }
+.recent-tracks .list-cell:filled:selected {
+    -fx-background-color: -amp-selection;
+}
+
+.recent-tracks .scroll-bar {
+    -fx-pref-width: 0;
+    -fx-pref-height: 0;
+    -fx-max-width: 0;
+    -fx-max-height: 0;
+    -fx-opacity: 0;
+}
+
+.track-row {
+    -fx-pref-height: 43.4px;
+    -fx-padding: 0 12px 0 25px;
+    -fx-spacing: 23px;
+    -fx-alignment: center-left;
+}
+
+.track-row .label {
+    -fx-font-size: 30px;
+}
+
+.track-title {
+    -fx-max-width: 1086px;
+}
+
+.track-duration {
+    -fx-pref-width: 105px;
+    -fx-alignment: center-left;
+}
+
+.track-row .track-duration { -fx-font-size: 28px; }
+
+.track-badge {
+    -fx-pref-width: 45px;
+    -fx-min-width: 45px;
+    -fx-pref-height: 32px;
+    -fx-min-height: 32px;
+    -fx-max-height: 32px;
+    -fx-background-color: -amp-badge;
+    -fx-background-radius: 4px;
+}
+
+.track-badge.playing {
+    -fx-background-color: -amp-active-badge;
+}
+
+.footer {
+    -fx-pref-height: 143px;
+    -fx-padding: 18px 12px 0;
+    -fx-alignment: top-left;
+    -fx-border-color: -amp-divider transparent transparent transparent;
+    -fx-border-width: 2px 0 0;
+}
+
+.transport-group { -fx-pref-width: 516px; }
+.volume-group { -fx-pref-width: 295px; }
+.mode-group { -fx-pref-width: 247px; }
+
+.footer-item {
+    -fx-content-display: top;
+    -fx-graphic-text-gap: 0;
+    -fx-alignment: top-center;
+    -fx-min-width: 0;
+    -fx-pref-width: 1px;
+    -fx-max-width: infinity;
+    -fx-font-size: 26px;
+}
+
+.footer .footer-item {
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+}
+
+.footer-separator {
+    -fx-pref-width: 2px;
+    -fx-max-height: 66px;
+    -fx-background-color: -amp-muted;
+}
+
+.arcade-button {
+    -fx-background-color: -amp-background;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-text-fill: -amp-text;
+    -fx-padding: 6px 10px;
+}
+
+.arcade-button:hover {
+    -fx-background-color: -amp-hover;
+}
+
+.arcade-button:focused {
+    -fx-border-color: -amp-accent;
+}
+
+.arcade-button:disabled {
+    -fx-opacity: 0.45;
+}

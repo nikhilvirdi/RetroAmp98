@@ -6,11 +6,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 
-/**
- * Shuffle play order strategy.
- * Guarantees fair shuffling (no track repeated until all tracks in the playlist have played).
- * Dynamically adapts to tracks added, removed, or moved mid-shuffle.
- */
 public class ShuffleOrder implements PlayOrderStrategy {
 
     private final Random random;
@@ -36,7 +31,6 @@ public class ShuffleOrder implements PlayOrderStrategy {
             return -1;
         }
 
-        // Initialize if order is out of sync with playlist size
         if (order.size() != playlistSize) {
             onPlaylistReset(playlistSize, currentIndex);
         }
@@ -50,7 +44,6 @@ public class ShuffleOrder implements PlayOrderStrategy {
             return order.get(pointer);
         }
 
-        // Reached end of current shuffle cycle
         if (repeatMode == RepeatMode.ALL) {
             int lastPlayed = (pointer >= 0 && pointer < order.size()) ? order.get(pointer) : -1;
             rebuildCycle(playlistSize, lastPlayed);
@@ -58,7 +51,6 @@ public class ShuffleOrder implements PlayOrderStrategy {
             return order.get(pointer);
         }
 
-        // RepeatMode.OFF
         return -1;
     }
 
@@ -112,14 +104,12 @@ public class ShuffleOrder implements PlayOrderStrategy {
 
     @Override
     public void onTrackAdded(int addedIndex, int newSize) {
-        // Shift existing indices that are >= addedIndex
         for (int i = 0; i < order.size(); i++) {
             if (order.get(i) >= addedIndex) {
                 order.set(i, order.get(i) + 1);
             }
         }
 
-        // Insert new track into the unplayed portion of the shuffle cycle
         if (order.isEmpty()) {
             order.add(addedIndex);
             pointer = -1;
@@ -144,7 +134,6 @@ public class ShuffleOrder implements PlayOrderStrategy {
             }
         }
 
-        // Shift down indices that were above removedIndex
         for (int i = 0; i < order.size(); i++) {
             if (order.get(i) > removedIndex) {
                 order.set(i, order.get(i) - 1);
@@ -214,7 +203,6 @@ public class ShuffleOrder implements PlayOrderStrategy {
         }
         Collections.shuffle(pool, random);
 
-        // Avoid starting the new cycle with the exact same track if size > 1
         if (playlistSize > 1 && !pool.isEmpty() && pool.get(0) == lastPlayed) {
             Collections.swap(pool, 0, random.nextInt(playlistSize - 1) + 1);
         }

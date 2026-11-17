@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+
+<HBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      styleClass="track-row" snapToPixel="false">
+    <Region styleClass="glyph, note, row-icon" />
+    <Label fx:id="trackTitle" styleClass="track-title" HBox.hgrow="ALWAYS" />
+    <Label fx:id="trackDuration" styleClass="track-duration" />
+    <StackPane fx:id="trackBadge" styleClass="track-badge">
+        <Region fx:id="statusGlyph" styleClass="glyph" />
+    </StackPane>
+</HBox>

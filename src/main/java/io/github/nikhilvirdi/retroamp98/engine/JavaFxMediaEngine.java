@@ -2,218 +2,205 @@ package io.github.nikhilvirdi.retroamp98.engine;
 
 import javafx.application.Platform;
 import javafx.collections.MapChangeListener;
-import javafx.collections.ObservableMap;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 
-import javax.swing.SwingUtilities;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 
-/**
- * JavaFX-backed implementation of MediaEngine using javafx.scene.media.MediaPlayer for audio playback.
- *
- * Threading bridge contract:
- * - All JavaFX calls execute strictly on the JavaFX Application Thread.
- * - All EngineListener callback events are delivered on the Swing EDT.
- * - All public interface methods are safe for invocation from the Swing EDT.
- */
 public class JavaFxMediaEngine implements MediaEngine {
 
-    // Initialize JavaFX Platform toolkit once and disable implicit exit
     static {
         try {
             Platform.startup(() -> {});
         } catch (IllegalStateException ignored) {
-            // Toolkit was already started (e.g., via test runner)
         }
-        Platform.setImplicitExit(false);
     }
 
-    private final List<EngineListener> listeners = new CopyOnWriteArrayList<>();
+    private final CopyOnWriteArrayList<EngineListener> listeners = new CopyOnWriteArrayList<>();
 
-    // Cached engine state (thread-safe reads from EDT)
     private volatile PlayerState state = PlayerState.IDLE;
     private volatile Duration position = Duration.ZERO;
     private volatile Duration duration = Duration.ZERO;
     private volatile double volume = 1.0;
-    private volatile boolean muted = false;
-
-    // JavaFX player reference - manipulated strictly on the JavaFX thread
+    private volatile boolean muted;
     private MediaPlayer currentMediaPlayer;
-
-    public JavaFxMediaEngine() {
-    }
+    private PlayerState requestedState = PlayerState.STOPPED;
+    private boolean ended;
+    private boolean closed;
+    private long revision;
+    private Duration pendingSeek;
 
     @Override
     public void load(Path path) {
-        if (path == null) {
-            transitionState(PlayerState.ERROR);
-            dispatchError("Media path cannot be null.");
-            return;
-        }
-
-        if (!Files.exists(path)) {
-            transitionState(PlayerState.ERROR);
-            dispatchError("Media file does not exist: " + path);
-            return;
-        }
-
-        // Move to LOADING state and reset playback offsets
-        transitionState(PlayerState.LOADING);
-        this.position = Duration.ZERO;
-        this.duration = Duration.ZERO;
-
         runOnFxThread(() -> {
-            // Cleanly dispose previous player to prevent native memory and audio leaks
+            if (closed) return;
+            revision++;
             disposeCurrentPlayer();
+            requestedState = PlayerState.STOPPED;
+            ended = false;
+            pendingSeek = null;
+            position = Duration.ZERO;
+            duration = Duration.ZERO;
 
+            if (path == null || !Files.isRegularFile(path)) {
+                fail(path == null ? "Media path cannot be null." : "Media file does not exist: " + path);
+                return;
+            }
+
+            transitionState(PlayerState.LOADING);
+            dispatch(listener -> listener.onPositionChanged(Duration.ZERO));
+            dispatch(listener -> listener.onDurationKnown(Duration.ZERO));
             try {
-                Media media = new Media(path.toUri().toString());
+                Media media = new Media(path.toAbsolutePath().toUri().toString());
+                MediaPlayer player = new MediaPlayer(media);
+                currentMediaPlayer = player;
+                player.setVolume(volume);
+                player.setMute(muted);
+                player.setAudioSpectrumNumBands(128);
+                player.setAudioSpectrumInterval(1.0 / 30);
+                player.setAudioSpectrumThreshold(-60);
+                player.setAudioSpectrumListener((timestamp, interval, magnitudes, phases) -> {
+                    if (currentMediaPlayer != player || state != PlayerState.PLAYING
+                            || requestedState != PlayerState.PLAYING || closed) return;
+                    for (EngineListener listener : listeners) listener.onSpectrum(magnitudes);
+                });
 
                 media.getMetadata().addListener((MapChangeListener<String, Object>) change -> {
-                    extractAndDispatchTrackInfo(media);
+                    if (currentMediaPlayer == player) dispatchTrackInfo(media);
                 });
-
                 media.setOnError(() -> {
-                    String msg = (media.getError() != null) ? media.getError().getMessage() : "Media parse error.";
-                    transitionState(PlayerState.ERROR);
-                    dispatchError(msg);
+                    if (currentMediaPlayer == player) {
+                        fail(media.getError() == null ? "Media parse error." : media.getError().getMessage());
+                    }
                 });
-
-                MediaPlayer player = new MediaPlayer(media);
-
-                // Persist audio volume and mute state across media loads
-                player.setVolume(this.volume);
-                player.setMute(this.muted);
-
-                // Metadata and duration readiness
+                player.setOnError(() -> {
+                    if (currentMediaPlayer == player) {
+                        fail(player.getError() == null ? "Playback error." : player.getError().getMessage());
+                    }
+                });
                 player.setOnReady(() -> {
-                    javafx.util.Duration total = player.getTotalDuration();
-                    Duration dur = (total != null && !total.isUnknown())
-                            ? Duration.ofMillis((long) total.toMillis())
-                            : Duration.ZERO;
-                    this.duration = dur;
-                    dispatchDurationKnown(dur);
-
-                    extractAndDispatchTrackInfo(media);
-
-                    // Move to STOPPED if playback has not already been started
-                    if (player.getStatus() != MediaPlayer.Status.PLAYING) {
-                        transitionState(PlayerState.STOPPED);
+                    if (currentMediaPlayer != player) return;
+                    duration = finiteDuration(player.getTotalDuration());
+                    Duration knownDuration = duration;
+                    dispatch(listener -> listener.onDurationKnown(knownDuration));
+                    dispatchTrackInfo(media);
+                    if (requestedState == PlayerState.PLAYING) {
+                        player.play();
+                    } else {
+                        transitionState(requestedState);
                     }
                 });
-
-                // Position tracking listener
-                player.currentTimeProperty().addListener((obs, oldVal, newVal) -> {
-                    if (newVal != null && !newVal.isUnknown()) {
-                        Duration pos = Duration.ofMillis((long) newVal.toMillis());
-                        this.position = pos;
-                        dispatchPositionChanged(pos);
-                    }
+                player.currentTimeProperty().addListener((observable, previous, current) -> {
+                    if (currentMediaPlayer != player) return;
+                    position = requestedState == PlayerState.STOPPED && !ended
+                            ? stoppedPosition() : finiteDuration(current);
+                    Duration updatedPosition = position;
+                    dispatch(listener -> listener.onPositionChanged(updatedPosition));
                 });
-
-                // Status changes
-                player.statusProperty().addListener((obs, oldStatus, newStatus) -> {
-                    if (newStatus == null) return;
-                    switch (newStatus) {
-                        case PLAYING -> transitionState(PlayerState.PLAYING);
+                player.statusProperty().addListener((observable, previous, current) -> {
+                    if (currentMediaPlayer != player || current == null) return;
+                    switch (current) {
+                        case PLAYING -> {
+                            applyPendingSeek(player);
+                            transitionState(PlayerState.PLAYING);
+                        }
                         case PAUSED -> transitionState(PlayerState.PAUSED);
                         case STOPPED -> {
-                            this.position = Duration.ZERO;
+                            position = stoppedPosition();
                             transitionState(PlayerState.STOPPED);
+                            Duration stoppedPosition = position;
+                            dispatch(listener -> listener.onPositionChanged(stoppedPosition));
                         }
-                        case HALTED -> {
-                            transitionState(PlayerState.ERROR);
-                            dispatchError("Player halted unexpectedly.");
-                        }
+                        case HALTED -> fail("Player halted unexpectedly.");
                         default -> {}
                     }
                 });
-
-                // Reached end of media
                 player.setOnEndOfMedia(() -> {
-                    this.position = this.duration;
+                    if (currentMediaPlayer != player) return;
+                    ended = true;
+                    requestedState = PlayerState.STOPPED;
+                    position = duration;
                     transitionState(PlayerState.STOPPED);
-                    dispatchEndOfMedia();
+                    Duration finalPosition = position;
+                    dispatch(listener -> listener.onPositionChanged(finalPosition));
+                    dispatch(EngineListener::onEndOfMedia);
                 });
-
-                // Runtime player errors
-                player.setOnError(() -> {
-                    String msg = (player.getError() != null) ? player.getError().getMessage() : "Playback error.";
-                    transitionState(PlayerState.ERROR);
-                    dispatchError(msg);
-                });
-
-                this.currentMediaPlayer = player;
             } catch (Exception e) {
-                transitionState(PlayerState.ERROR);
-                dispatchError("Failed to load media: " + e.getMessage());
+                fail("Failed to load media: " + e.getMessage());
             }
         });
     }
 
     @Override
     public void play() {
-        if (state == PlayerState.ERROR || state == PlayerState.IDLE) {
-            return;
-        }
         runOnFxThread(() -> {
-            if (currentMediaPlayer != null) {
-                currentMediaPlayer.play();
+            if (closed || currentMediaPlayer == null || state == PlayerState.ERROR) return;
+            requestedState = PlayerState.PLAYING;
+            if (ended) {
+                revision++;
+                ended = false;
+                currentMediaPlayer.stop();
             }
+            currentMediaPlayer.play();
+            applyPendingSeek(currentMediaPlayer);
         });
     }
 
     @Override
     public void pause() {
-        if (state != PlayerState.PLAYING) {
-            return;
-        }
         runOnFxThread(() -> {
-            if (currentMediaPlayer != null) {
-                currentMediaPlayer.pause();
-            }
+            if (closed || currentMediaPlayer == null) return;
+            requestedState = PlayerState.PAUSED;
+            currentMediaPlayer.pause();
+            if (state == PlayerState.LOADING) transitionState(PlayerState.PAUSED);
         });
     }
 
     @Override
     public void stop() {
-        if (state == PlayerState.ERROR || state == PlayerState.IDLE) {
-            return;
-        }
         runOnFxThread(() -> {
-            if (currentMediaPlayer != null) {
-                currentMediaPlayer.stop();
-            }
-            this.position = Duration.ZERO;
-            transitionState(PlayerState.STOPPED);
+            if (closed) return;
+            revision++;
+            requestedState = PlayerState.STOPPED;
+            ended = false;
+            pendingSeek = null;
+            if (currentMediaPlayer != null) currentMediaPlayer.stop();
+            position = Duration.ZERO;
+            if (state != PlayerState.IDLE) transitionState(PlayerState.STOPPED);
+            dispatch(listener -> listener.onPositionChanged(Duration.ZERO));
         });
     }
 
     @Override
     public void seek(Duration targetPosition) {
-        if (targetPosition == null || state == PlayerState.ERROR || state == PlayerState.IDLE) {
-            return;
-        }
         runOnFxThread(() -> {
-            if (currentMediaPlayer != null && currentMediaPlayer.getStatus() != MediaPlayer.Status.UNKNOWN) {
-                long targetMillis = Math.max(0, targetPosition.toMillis());
-                currentMediaPlayer.seek(javafx.util.Duration.millis(targetMillis));
+            if (closed || currentMediaPlayer == null || targetPosition == null
+                    || duration.isZero() || state == PlayerState.LOADING || state == PlayerState.ERROR) return;
+            Duration target = targetPosition.isNegative() ? Duration.ZERO : targetPosition;
+            if (target.compareTo(duration) > 0) target = duration;
+            if (state == PlayerState.STOPPED) {
+                // JavaFX ignores seek while stopped, so apply it when playback resumes.
+                pendingSeek = target;
+            } else {
+                ended = false;
+                currentMediaPlayer.seek(javafx.util.Duration.millis(target.toMillis()));
             }
+            position = target;
+            Duration updatedPosition = target;
+            dispatch(listener -> listener.onPositionChanged(updatedPosition));
         });
     }
 
     @Override
     public void setVolume(double volume) {
+        if (!Double.isFinite(volume)) return;
         this.volume = Math.clamp(volume, 0.0, 1.0);
         runOnFxThread(() -> {
-            if (currentMediaPlayer != null) {
-                currentMediaPlayer.setVolume(this.volume);
-            }
+            if (!closed && currentMediaPlayer != null) currentMediaPlayer.setVolume(this.volume);
         });
     }
 
@@ -221,136 +208,104 @@ public class JavaFxMediaEngine implements MediaEngine {
     public void setMuted(boolean muted) {
         this.muted = muted;
         runOnFxThread(() -> {
-            if (currentMediaPlayer != null) {
-                currentMediaPlayer.setMute(this.muted);
-            }
+            if (!closed && currentMediaPlayer != null) currentMediaPlayer.setMute(this.muted);
         });
     }
 
-    @Override
-    public PlayerState getState() {
-        return state;
-    }
-
-    @Override
-    public Duration getPosition() {
-        return position;
-    }
-
-    @Override
-    public Duration getDuration() {
-        return duration;
-    }
-
-    @Override
-    public double getVolume() {
-        return volume;
-    }
-
-    @Override
-    public boolean isMuted() {
-        return muted;
-    }
+    @Override public PlayerState getState() { return state; }
+    @Override public Duration getPosition() { return position; }
+    @Override public Duration getDuration() { return duration; }
+    @Override public double getVolume() { return volume; }
+    @Override public boolean isMuted() { return muted; }
 
     @Override
     public void addListener(EngineListener listener) {
-        if (listener != null) {
-            listeners.add(listener);
-        }
+        if (listener != null) listeners.addIfAbsent(listener);
     }
 
     @Override
     public void removeListener(EngineListener listener) {
-        if (listener != null) {
-            listeners.remove(listener);
-        }
+        listeners.remove(listener);
     }
 
-    // --- Thread Helpers & Event Dispatching ---
+    @Override
+    public void close() {
+        runOnFxThread(() -> {
+            if (closed) return;
+            closed = true;
+            revision++;
+            listeners.clear();
+            disposeCurrentPlayer();
+            position = Duration.ZERO;
+            duration = Duration.ZERO;
+            state = PlayerState.IDLE;
+        });
+    }
 
     private void runOnFxThread(Runnable action) {
-        if (Platform.isFxApplicationThread()) {
-            action.run();
-        } else {
-            Platform.runLater(action);
-        }
-    }
-
-    private void runOnEdt(Runnable action) {
-        if (SwingUtilities.isEventDispatchThread()) {
-            action.run();
-        } else {
-            SwingUtilities.invokeLater(action);
-        }
+        if (Platform.isFxApplicationThread()) action.run();
+        else Platform.runLater(action);
     }
 
     private void transitionState(PlayerState newState) {
-        if (this.state == newState) return;
-        this.state = newState;
-        runOnEdt(() -> {
+        if (state == newState) return;
+        state = newState;
+        dispatch(listener -> listener.onStateChanged(newState));
+    }
+
+    private void dispatch(Consumer<EngineListener> event) {
+        long eventRevision = revision;
+        // Ignore queued events from a player that has since been replaced or stopped.
+        Platform.runLater(() -> {
+            if (closed || revision != eventRevision) return;
             for (EngineListener listener : listeners) {
-                listener.onStateChanged(newState);
+                event.accept(listener);
             }
         });
     }
 
-    private void dispatchPositionChanged(Duration pos) {
-        runOnEdt(() -> {
-            for (EngineListener listener : listeners) {
-                listener.onPositionChanged(pos);
-            }
-        });
+    private void dispatchTrackInfo(Media media) {
+        Object title = media.getMetadata().get("title");
+        Object artist = media.getMetadata().get("artist");
+        TrackInfo info = new TrackInfo(title instanceof String s && !s.isBlank() ? s.trim() : null,
+                artist instanceof String s && !s.isBlank() ? s.trim() : null);
+        dispatch(listener -> listener.onTrackInfoReady(info));
     }
 
-    private void dispatchDurationKnown(Duration dur) {
-        runOnEdt(() -> {
-            for (EngineListener listener : listeners) {
-                listener.onDurationKnown(dur);
-            }
-        });
+    private void fail(String message) {
+        revision++;
+        ended = false;
+        disposeCurrentPlayer();
+        requestedState = PlayerState.STOPPED;
+        pendingSeek = null;
+        position = Duration.ZERO;
+        duration = Duration.ZERO;
+        transitionState(PlayerState.ERROR);
+        dispatch(listener -> listener.onError(message));
     }
 
-    private void dispatchEndOfMedia() {
-        runOnEdt(() -> {
-            for (EngineListener listener : listeners) {
-                listener.onEndOfMedia();
-            }
-        });
+    private Duration stoppedPosition() {
+        return pendingSeek == null ? Duration.ZERO : pendingSeek;
     }
 
-    private void dispatchError(String errorMessage) {
-        runOnEdt(() -> {
-            for (EngineListener listener : listeners) {
-                listener.onError(errorMessage);
-            }
-        });
+    private void applyPendingSeek(MediaPlayer player) {
+        if (pendingSeek != null && player.getStatus() == MediaPlayer.Status.PLAYING) {
+            player.seek(javafx.util.Duration.millis(pendingSeek.toMillis()));
+            pendingSeek = null;
+        }
     }
 
-    private void extractAndDispatchTrackInfo(Media media) {
-        if (media == null) return;
-        ObservableMap<String, Object> meta = media.getMetadata();
-        String title = (meta.get("title") instanceof String s && !s.isBlank()) ? s.trim() : null;
-        String artist = (meta.get("artist") instanceof String s && !s.isBlank()) ? s.trim() : null;
-
-        TrackInfo info = new TrackInfo(title, artist);
-        runOnEdt(() -> {
-            for (EngineListener listener : listeners) {
-                listener.onTrackInfoReady(info);
-            }
-        });
+    private static Duration finiteDuration(javafx.util.Duration value) {
+        if (value == null || !Double.isFinite(value.toMillis()) || value.toMillis() < 0) return Duration.ZERO;
+        return Duration.ofMillis((long) value.toMillis());
     }
 
-    /**
-     * Disposes the current MediaPlayer cleanly on the JavaFX thread.
-     */
     private void disposeCurrentPlayer() {
-        if (currentMediaPlayer != null) {
-            try {
-                currentMediaPlayer.stop();
-                currentMediaPlayer.dispose();
-            } catch (Exception ignored) {
-            }
-            currentMediaPlayer = null;
+        MediaPlayer player = currentMediaPlayer;
+        currentMediaPlayer = null;
+        if (player != null) {
+            player.setAudioSpectrumListener(null);
+            player.dispose();
         }
     }
 }

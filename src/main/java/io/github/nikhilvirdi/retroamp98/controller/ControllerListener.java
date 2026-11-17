@@ -1,4 +1,4 @@
-package io.github.nikhilvirdi.retroamp98.ui;
+package io.github.nikhilvirdi.retroamp98.controller;
 
 import io.github.nikhilvirdi.retroamp98.engine.PlayerState;
 import io.github.nikhilvirdi.retroamp98.engine.TrackInfo;
@@ -7,11 +7,9 @@ import io.github.nikhilvirdi.retroamp98.playlist.Track;
 
 import java.time.Duration;
 
-/**
- * Listener for high-level playback and playlist events published by PlayerController.
- * All callbacks execute on the Swing EDT.
- */
 public interface ControllerListener {
+    enum NoticeLevel { INFO, WARNING, ERROR }
+
     default void onStateChanged(PlayerState state) {}
     default void onPositionChanged(Duration position, Duration duration) {}
     default void onDurationKnown(Duration duration) {}
@@ -20,5 +18,8 @@ public interface ControllerListener {
     default void onRepeatModeChanged(RepeatMode mode) {}
     default void onShuffleChanged(boolean shuffle) {}
     default void onPlaylistUpdated() {}
+    default void onHistoryUpdated() {}
     default void onTrackInfoReady(TrackInfo trackInfo) {}
+    default void onSpectrum(float[] magnitudes) {}
+    default void onNotice(NoticeLevel level, String title, String message) {}
 }

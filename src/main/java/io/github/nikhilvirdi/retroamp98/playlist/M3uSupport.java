@@ -7,89 +7,75 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.InvalidPathException;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-/**
- * Utility for saving and loading M3U and M3U8 playlists in UTF-8 format.
- * Skips missing files and reports them during loading.
- */
 public final class M3uSupport {
 
     private static final String EXTM3U_HEADER = "#EXTM3U";
     private static final String EXTINF_PREFIX = "#EXTINF:";
 
     private M3uSupport() {
-        // Static utility
     }
 
-    /**
-     * Result of an M3U load operation, containing the loaded Playlist and skipped missing files.
-     */
     public record M3uResult(Playlist playlist, List<Path> missingFiles) {
         public M3uResult {
             missingFiles = Collections.unmodifiableList(missingFiles);
         }
     }
 
-    /**
-     * Saves the playlist to an M3U/M3U8 file at the given path in UTF-8.
-     * Uses relative paths where possible.
-     */
     public static void save(Playlist playlist, Path m3uPath) throws IOException {
         Objects.requireNonNull(playlist, "playlist cannot be null");
         Objects.requireNonNull(m3uPath, "m3uPath cannot be null");
+        if (FolderImporter.isSupported(m3uPath)) throw new IOException("Choose a playlist filename (.m3u or .m3u8), not an audio file.");
 
         Path parentDir = m3uPath.toAbsolutePath().getParent();
         if (parentDir != null && !Files.exists(parentDir)) {
             Files.createDirectories(parentDir);
         }
 
-        try (BufferedWriter writer = Files.newBufferedWriter(m3uPath, StandardCharsets.UTF_8)) {
-            writer.write(EXTM3U_HEADER);
-            writer.newLine();
-
-            for (Track track : playlist.getTracks()) {
-                // Extended info line with track title
-                writer.write(EXTINF_PREFIX + "-1," + track.getTitle());
+        Path temporary = Files.createTempFile(parentDir, ".retroamp98-", ".m3u.tmp");
+        try {
+            try (BufferedWriter writer = Files.newBufferedWriter(temporary, StandardCharsets.UTF_8)) {
+                writer.write(EXTM3U_HEADER);
                 writer.newLine();
 
-                // Compute relative path if on the same root, otherwise fallback to absolute
-                String pathStr;
-                Path trackAbs = track.getPath().toAbsolutePath().normalize();
-                if (parentDir != null && Objects.equals(parentDir.getRoot(), trackAbs.getRoot())) {
-                    pathStr = parentDir.relativize(trackAbs).toString();
-                } else {
-                    pathStr = trackAbs.toString();
+                for (Track track : playlist.getTracks()) {
+                    writer.write(EXTINF_PREFIX + "-1," + track.getTitle().replace('\n', ' ').replace('\r', ' '));
+                    writer.newLine();
+
+                    String pathStr;
+                    Path trackAbs = track.getPath().toAbsolutePath().normalize();
+                    if (parentDir != null && Objects.equals(parentDir.getRoot(), trackAbs.getRoot())) {
+                        pathStr = parentDir.relativize(trackAbs).toString();
+                    } else {
+                        pathStr = trackAbs.toString();
+                    }
+
+                    writer.write(pathStr);
+                    writer.newLine();
                 }
-
-                writer.write(pathStr);
-                writer.newLine();
             }
-        }
+            try { Files.move(temporary, m3uPath, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING); }
+            catch (java.nio.file.AtomicMoveNotSupportedException e) {
+                Files.move(temporary, m3uPath, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } finally { Files.deleteIfExists(temporary); }
     }
 
-    /**
-     * Loads a playlist from an M3U/M3U8 file.
-     * Skips non-existent files and logs them to System.err.
-     */
     public static Playlist load(Path m3uPath) throws IOException {
         return loadWithReport(m3uPath, missing -> System.err.println("[M3U] Skipping missing file: " + missing)).playlist();
     }
 
-    /**
-     * Loads a playlist and returns both the loaded Playlist and any missing files encountered.
-     */
     public static M3uResult loadWithReport(Path m3uPath) throws IOException {
         return loadWithReport(m3uPath, null);
     }
 
-    /**
-     * Loads a playlist with an optional consumer callback for each missing file encountered.
-     */
     public static M3uResult loadWithReport(Path m3uPath, Consumer<Path> missingReporter) throws IOException {
         Objects.requireNonNull(m3uPath, "m3uPath cannot be null");
 
@@ -106,7 +92,6 @@ public final class M3uSupport {
             String pendingTitle = null;
 
             while ((line = reader.readLine()) != null) {
-                // Strip possible UTF-8 BOM
                 if (line.startsWith("\uFEFF")) {
                     line = line.substring(1);
                 }
@@ -116,12 +101,10 @@ public final class M3uSupport {
                     continue;
                 }
 
-                // Header
                 if (line.equalsIgnoreCase(EXTM3U_HEADER)) {
                     continue;
                 }
 
-                // Track title metadata directive
                 if (line.startsWith(EXTINF_PREFIX)) {
                     int commaIdx = line.indexOf(',');
                     if (commaIdx >= 0 && commaIdx < line.length() - 1) {
@@ -130,19 +113,18 @@ public final class M3uSupport {
                     continue;
                 }
 
-                // Ignore other comment lines
                 if (line.startsWith("#")) {
                     continue;
                 }
 
-                // Resolve path (relative or absolute)
-                Path candidate = Paths.get(line);
+                Path candidate;
+                try { candidate = Paths.get(line); }
+                catch (InvalidPathException e) { pendingTitle = null; continue; }
                 Path resolved = candidate.isAbsolute()
                         ? candidate.normalize()
                         : (baseDir != null ? baseDir.resolve(candidate).normalize() : candidate.normalize());
 
-                // Skip missing files and report them
-                if (!Files.exists(resolved)) {
+                if (!Files.isRegularFile(resolved) || !Files.isReadable(resolved)) {
                     missingFiles.add(resolved);
                     if (missingReporter != null) {
                         missingReporter.accept(resolved);
@@ -151,7 +133,10 @@ public final class M3uSupport {
                     continue;
                 }
 
-                playlist.add(new Track(resolved, pendingTitle));
+                try {
+                    Path real = resolved.toRealPath();
+                    if (playlist.getTracks().stream().noneMatch(t -> t.getPath().equals(real))) playlist.add(new Track(real, pendingTitle));
+                } catch (IOException | SecurityException e) { missingFiles.add(resolved); }
                 pendingTitle = null;
             }
         }
