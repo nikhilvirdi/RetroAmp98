@@ -12,6 +12,10 @@ The original version used Swing and took inspiration from Windows Media Player 8
 
 The player also reads metadata directly from audio files, so properly tagged songs show their title, artist, album, artwork, and description instead of a messy filename. The playback engine, playlist logic, and interface are kept separate. That started as an OOP coursework decision, but it also made replacing the entire UI possible without throwing away the underlying player.
 
+<img width="526" height="737" alt="image" src="https://github.com/user-attachments/assets/ca9b10d5-5945-48b0-bb21-42e4afa8902a" />
+<img width="523" height="732" alt="image" src="https://github.com/user-attachments/assets/b330f7be-11c5-4f3c-8c44-ad8c47fcfede" />
+
+
 ### How It Works
 
 #### Playback Engine
