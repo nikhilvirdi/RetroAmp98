@@ -6,7 +6,7 @@ A retro arcade-style music player. Pick a few songs, hit play, and listen like i
 
 ### About RetroAmp98
 
-**RetroAmp98** is a mini desktop music player I originally built with a friend for our **CSE 3rd semester Object-Oriented Programming with Java coursework**. It plays audio files from your own machine (MP3, WAV, M4A), with the usual playback controls, playlists, shuffle, repeat, and a recently played history.
+**RetroAmp98** is a mini desktop music player I originally built with [Kritagya Tak](https://github.com/takkritagya16) for our **CSE 3rd semester Object-Oriented Programming with Java coursework**. It plays audio files from your own machine (MP3, WAV, M4A), with the usual playback controls, playlists, shuffle, repeat, and a recently played history.
 
 The original version used Swing and took inspiration from Windows Media Player 8/9. I later rebuilt the interface in JavaFX, replacing the old Windows-style panels with a pixel-art arcade look: bitmap fonts, a black-and-blue color scheme, orange selection highlights, album artwork, and a small audio spectrum that actually responds to the music. The idea was to keep the feel of an old computer music player without just copying one.
 
